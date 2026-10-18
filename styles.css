@@ -124,3 +124,4 @@ tr.clickable{cursor:pointer} tr.clickable:hover td{background:var(--soft)}
 .student.on{border-color:var(--gold)}
 @media (max-width:640px){.card{padding:16px}.qhead{font-size:.9rem}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.chip.pts{border-color:var(--gold);color:var(--gold);font-weight:600}

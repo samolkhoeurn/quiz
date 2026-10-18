@@ -4,7 +4,7 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=4";
 import { SUBJECTS, LEVELS } from "./data/subjects.js";
 
 /* ---------- helpers ---------- */
@@ -14,6 +14,29 @@ const km = (n) => String(n).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨�
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const LETTERS = ["ក", "ខ", "គ", "ឃ"];
 const pct = (s, t) => (t ? Math.round((100 * s) / t) : 0);
+const pointsOf = (a) => (a.points != null ? a.points : pointsOf(a));   // older attempts had no points field
+const WEIGHT = { 1: 1, 2: 2, 3: 3 };          // relative weight of easy / medium / hard
+const QUIZ_SIZE = 25;                          // questions drawn per attempt (bank may hold up to 100)
+const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+// Stratified random draw: keep the bank's easy/medium/hard proportions, order easy → hard, shuffle within level.
+function drawQuestions(bank) {
+  const n = bank.questions.length, size = Math.min(bank.quizSize || QUIZ_SIZE, n);
+  const byLv = { 1: [], 2: [], 3: [] };
+  bank.questions.forEach((q, i) => byLv[q.lv].push(i));
+  const want = { 1: 0, 2: 0, 3: 0 }; let left = size;
+  for (const l of [1, 2, 3]) { want[l] = Math.min(byLv[l].length, Math.round((size * byLv[l].length) / n)); left -= want[l]; }
+  for (const l of [3, 2, 1]) { while (left > 0 && want[l] < byLv[l].length) { want[l]++; left--; } while (left < 0 && want[l] > 0) { want[l]--; left++; } }
+  return [1, 2, 3].flatMap((l) => shuffle(byLv[l]).slice(0, want[l]));
+}
+// Points per drawn question, weighted by level, summing to exactly 100 (remainder goes to the hardest questions).
+function assignPoints(qs) {
+  const W = qs.reduce((t, q) => t + WEIGHT[q.lv], 0);
+  const pts = qs.map((q) => Math.floor((100 * WEIGHT[q.lv]) / W));
+  let rem = 100 - pts.reduce((a, b) => a + b, 0);
+  const order = qs.map((q, i) => i).sort((a, b) => WEIGHT[qs[b].lv] - WEIGHT[qs[a].lv]);
+  for (let k = 0; rem > 0; k = (k + 1) % order.length) { pts[order[k]]++; rem--; }
+  return pts;
+}
 const secs = (ms) => km((ms / 1000).toFixed(1).replace(".", ",")) + " វិ";
 const mins = (ms) => { const s = Math.round(ms / 1000); return s < 60 ? km(s) + " វិ" : `${km(Math.floor(s / 60))} នាទី ${km(s % 60)} វិ`; };
 const fmtDate = (ms) => { const d = new Date(ms); return km(`${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`); };
@@ -40,12 +63,13 @@ if (!configured) renderSetupNeeded();
 else onAuthStateChanged(auth, async (user) => {
   S.user = user; S.profile = null; S.attempts = null; S.quiz = null;
   if (!user) { renderLogin(); return; }
-  S.isAdmin = user.email === ADMIN_EMAIL;
+  S.isAdmin = (user.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
   if (S.isAdmin) { renderAdmin(); return; }
   const snap = await getDoc(doc(db, "users", user.uid));
   if (!snap.exists() || snap.data().active === false) {
+    const signedAs = user.email || "(no e-mail)";
     await signOut(auth);
-    renderLogin("គណនីនេះមិនទាន់ត្រូវបានបើកឲ្យប្រើទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រង។");
+    renderLogin(`គណនីនេះមិនទាន់ត្រូវបានបើកឲ្យប្រើទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រង។ (signed in as ${signedAs}; admin is ${ADMIN_EMAIL})`);
     return;
   }
   S.profile = snap.data();
@@ -132,8 +156,8 @@ async function renderChapterList(subjId) {
     <div class="chapters">${s.chapters.map((c) => {
       const open = allowed.has(c.id) && c.bank;
       const mine = attempts.filter((a) => a.bankId === c.id);
-      const best = mine.length ? Math.max(...mine.map((a) => pct(a.score, a.total))) : null;
-      const meta = !c.bank ? "មិនទាន់មានសំណួរ" : !allowed.has(c.id) ? "មិនទាន់បើក" : mine.length ? `បានធ្វើ ${km(mine.length)} ដង<br>ល្អបំផុត ${km(best)}%` : "មិនទាន់ធ្វើ";
+      const best = mine.length ? Math.max(...mine.map((a) => pointsOf(a))) : null;
+      const meta = !c.bank ? "មិនទាន់មានសំណួរ" : !allowed.has(c.id) ? "មិនទាន់បើក" : mine.length ? `បានធ្វើ ${km(mine.length)} ដង<br>ល្អបំផុត ${km(best)} / ១០០` : "មិនទាន់ធ្វើ";
       return `<button class="chapter" style="--sc:${s.color}" data-bank="${c.id}" ${open ? "" : "disabled"}>
         <span class="n">${km(c.n)}</span><span class="t">${s.unit}ទី${km(c.n)}៖ ${esc(c.title)}${c.sub ? `<span class="sub">${esc(c.sub)}</span>` : ""}</span><span class="meta">${meta}</span></button>`;
     }).join("")}</div>
@@ -144,16 +168,17 @@ async function renderChapterList(subjId) {
 
 async function renderQuizIntro(bankId) {
   const bank = await loadBank(bankId), { s, c } = chapterOf(bankId);
-  const n = bank.questions.length, lv = [1, 2, 3].map((l) => bank.questions.filter((q) => q.lv === l).length);
+  const n = bank.questions.length, size = Math.min(bank.quizSize || QUIZ_SIZE, n), lv = [1, 2, 3].map((l) => bank.questions.filter((q) => q.lv === l).length);
   app.innerHTML = `<div class="card">
     <div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(s.name)}</span><span class="chip">${s.unit}ទី${km(c.n)}</span></div>
     <h1>${esc(bank.title)}</h1>
     <div class="stats">
-      <div class="stat"><div class="v">${km(n)}</div><div class="l">សំណួរ</div></div>
-      <div class="stat"><div class="v">${km(lv[0])} / ${km(lv[1])} / ${km(lv[2])}</div><div class="l">ងាយ / មធ្យម / ពិបាក</div></div>
+      <div class="stat"><div class="v">${km(size)}</div><div class="l">សំណួរក្នុងតេស្តម្តង</div></div>
+      <div class="stat"><div class="v">${km(n)}</div><div class="l">សំណួរក្នុងធនាគារ (${km(lv[0])} / ${km(lv[1])} / ${km(lv[2])})</div></div>
+      <div class="stat"><div class="v">១០០</div><div class="l">ពិន្ទុសរុប</div></div>
     </div>
     <div class="notice">
-      <strong>របៀបធ្វើ៖</strong> ជ្រើសរើសចម្លើយមួយក្នុងចំណោមបួន។ អ្នកអាចត្រឡប់ទៅកែចម្លើយបាន មុនពេលដាក់ស្នើ។
+      <strong>របៀបធ្វើ៖</strong> សំណួរត្រូវបានចាប់យកដោយចៃដន្យពីធនាគារ ដូច្នេះការធ្វើម្តងទៀតនឹងបានសំណួរខុសគ្នា។ ជ្រើសរើសចម្លើយមួយក្នុងចំណោមបួន។ សំណួរពិបាកមានពិន្ទុច្រើនជាង (ងាយ ១ : មធ្យម ២ : ពិបាក ៣) សរុប ១០០ ពិន្ទុ។ អ្នកអាចត្រឡប់ទៅកែចម្លើយបាន មុនពេលដាក់ស្នើ។
       ពេលវេលាដែលចំណាយលើសំណួរនីមួយៗត្រូវបានកត់ត្រា ប៉ុន្តែគ្មានការកំណត់ពេលទេ។ ចម្លើយត្រឹមត្រូវ និងការពន្យល់ បង្ហាញបន្ទាប់ពីដាក់ស្នើ។
     </div>
     <div class="row between"><button class="btn ghost" id="back">← ត្រឡប់</button><button class="btn primary" id="start">ចាប់ផ្តើម</button></div>
@@ -164,7 +189,13 @@ async function renderQuizIntro(bankId) {
 
 /* ---------- quiz engine ---------- */
 function startQuiz(bank) {
-  S.quiz = { bank, i: 0, chosen: Array(bank.questions.length).fill(null), ms: Array(bank.questions.length).fill(0), t0: performance.now(), startedAt: Date.now(), confirm: false };
+  const idx = drawQuestions(bank);
+  const qs = idx.map((qi) => {
+    const q = bank.questions[qi]; const perm = shuffle([0, 1, 2, 3]);          // perm[k] = original option shown at position k
+    return { qi, lv: q.lv, q: q.q, o: perm.map((k) => q.o[k]), perm, a: perm.indexOf(q.a), ex: q.ex };
+  });
+  assignPoints(qs).forEach((p, i) => (qs[i].pts = p));
+  S.quiz = { bank, qs, i: 0, chosen: Array(qs.length).fill(null), ms: Array(qs.length).fill(0), t0: performance.now(), startedAt: Date.now(), confirm: false };
   nav(`<span class="who">${esc(S.profile.displayName || S.profile.username)}</span><button class="btn ghost sm" id="quitBtn">បោះបង់</button>`);
   $("quitBtn").addEventListener("click", () => { if (!S.quiz.quitConfirm) { S.quiz.quitConfirm = true; renderQuestion(); } });
   window.addEventListener("beforeunload", warnUnload);
@@ -175,14 +206,14 @@ function tick() { const now = performance.now(); S.quiz.ms[S.quiz.i] += now - S.
 function goto(i) { tick(); S.quiz.i = i; S.quiz.confirm = false; renderQuestion(); }
 
 function renderQuestion() {
-  const Q = S.quiz, q = Q.bank.questions[Q.i], n = Q.bank.questions.length, answered = Q.chosen.filter((c) => c != null).length;
+  const Q = S.quiz, q = Q.qs[Q.i], n = Q.qs.length, answered = Q.chosen.filter((c) => c != null).length;
   app.innerHTML = `<div class="card">
     ${Q.quitConfirm ? `<div class="notice bad row between"><span>បោះបង់ការធ្វើតេស្តនេះ? ចម្លើយនឹងមិនត្រូវបានរក្សាទុកទេ។</span><span class="row"><button class="btn danger sm" id="quitYes">បាទ/ចាស បោះបង់</button><button class="btn ghost sm" id="quitNo">បន្តធ្វើ</button></span></div>` : ""}
-    <div class="qhead"><span class="muted">សំណួរទី ${km(Q.i + 1)} / ${km(n)} · បានឆ្លើយ ${km(answered)}</span><span class="row"><span class="chip lv${q.lv}">${LEVELS[q.lv]}</span></span></div>
+    <div class="qhead"><span class="muted">សំណួរទី ${km(Q.i + 1)} / ${km(n)} · បានឆ្លើយ ${km(answered)}</span><span class="row"><span class="chip lv${q.lv}">${LEVELS[q.lv]}</span><span class="chip pts">${km(q.pts)} ពិន្ទុ</span></span></div>
     <div class="progressbar"><i style="width:${(100 * answered) / n}%"></i></div>
     <p class="qtext">${km(Q.i + 1)}. ${esc(q.q)}</p>
     <div class="opts">${q.o.map((t, k) => `<button class="opt ${Q.chosen[Q.i] === k ? "sel" : ""}" data-k="${k}" aria-pressed="${Q.chosen[Q.i] === k}"><span class="k">${LETTERS[k]}</span><span>${esc(t)}</span></button>`).join("")}</div>
-    <div class="dots">${Q.bank.questions.map((_, k) => `<button class="dot ${Q.chosen[k] != null ? "done" : ""} ${k === Q.i ? "cur" : ""}" data-go="${k}" title="សំណួរទី ${km(k + 1)}">${km(k + 1)}</button>`).join("")}</div>
+    <div class="dots">${Q.qs.map((_, k) => `<button class="dot ${Q.chosen[k] != null ? "done" : ""} ${k === Q.i ? "cur" : ""}" data-go="${k}" title="សំណួរទី ${km(k + 1)}">${km(k + 1)}</button>`).join("")}</div>
     ${Q.confirm ? `<div class="notice warn row between"><span>${answered < n ? `នៅសល់ ${km(n - answered)} សំណួរមិនទាន់ឆ្លើយ។ ` : ""}ដាក់ស្នើឥឡូវនេះ? បន្ទាប់ពីដាក់ស្នើ មិនអាចកែចម្លើយបានទេ។</span><span class="row"><button class="btn primary sm" id="submitYes">ដាក់ស្នើ</button><button class="btn ghost sm" id="submitNo">ត្រឡប់</button></span></div>` : ""}
     <div class="row between">
       <button class="btn" id="prev" ${Q.i === 0 ? "disabled" : ""}>← មុន</button>
@@ -206,12 +237,14 @@ function renderQuestion() {
 async function submitQuiz() {
   tick();
   const Q = S.quiz, bank = Q.bank;
-  const answers = bank.questions.map((q, i) => ({ i, lv: q.lv, chosen: Q.chosen[i], correct: Q.chosen[i] === q.a, ms: Math.round(Q.ms[i]) }));
+  // answers are stored in bank terms: i = index in the bank, chosen = original option index
+  const answers = Q.qs.map((q, k) => ({ i: q.qi, lv: q.lv, pts: q.pts, chosen: Q.chosen[k] == null ? null : q.perm[Q.chosen[k]], correct: Q.chosen[k] === q.a, ms: Math.round(Q.ms[k]) }));
   const attempt = {
     uid: S.user.uid, username: S.profile.username, displayName: S.profile.displayName || S.profile.username,
     bankId: bank.id, subject: bank.subject, title: bank.title,
     startedAt: Q.startedAt, finishedAt: Date.now(), totalMs: answers.reduce((a, b) => a + b.ms, 0),
     score: answers.filter((a) => a.correct).length, total: answers.length, answers,
+    points: answers.filter((a) => a.correct).reduce((t, a) => t + a.pts, 0), maxPoints: 100, bankSize: bank.questions.length,
   };
   window.removeEventListener("beforeunload", warnUnload);
   S.quiz = null;
@@ -225,7 +258,7 @@ async function submitQuiz() {
 async function renderResult(attempt, bank, back, who) {
   bank = bank || (await loadBank(attempt.bankId));
   const { s, c } = chapterOf(attempt.bankId);
-  const p = pct(attempt.score, attempt.total);
+  const p = pointsOf(attempt);
   const byLv = [1, 2, 3].map((l) => { const as = attempt.answers.filter((a) => a.lv === l); return { l, c: as.filter((a) => a.correct).length, t: as.length }; });
   const slowest = [...attempt.answers].sort((a, b) => b.ms - a.ms)[0];
   nav(`${who ? `<span class="who">${esc(who)}</span>` : ""}${logoutBtn()}`);
@@ -234,17 +267,17 @@ async function renderResult(attempt, bank, back, who) {
     <h1>${esc(bank.title)} — លទ្ធផល${attempt.displayName ? ` របស់ ${esc(attempt.displayName)}` : ""}</h1>
     ${attempt.saveError ? `<div class="notice bad">លទ្ធផលមិនត្រូវបានរក្សាទុកទេ (${esc(attempt.saveError)})។ សូមថតអេក្រង់ទុក។</div>` : ""}
     <div class="stats">
-      <div class="stat"><div class="v ${p >= 50 ? "ok-text" : "bad-text"}">${km(p)}%</div><div class="l">ពិន្ទុ ${km(attempt.score)} / ${km(attempt.total)}</div></div>
+      <div class="stat"><div class="v ${p >= 50 ? "ok-text" : "bad-text"}">${km(p)} / ១០០</div><div class="l">ពិន្ទុ · ត្រឹមត្រូវ ${km(attempt.score)} / ${km(attempt.total)} សំណួរ</div></div>
       <div class="stat"><div class="v">${mins(attempt.totalMs)}</div><div class="l">ពេលសរុប</div></div>
       <div class="stat"><div class="v">${secs(attempt.totalMs / attempt.total)}</div><div class="l">មធ្យម / សំណួរ</div></div>
       ${byLv.map((x) => `<div class="stat"><div class="v">${km(x.c)}/${km(x.t)}</div><div class="l">${LEVELS[x.l]}</div></div>`).join("")}
     </div>
-    <p class="muted small">សំណួរដែលចំណាយពេលយូរបំផុត៖ ទី${km(slowest.i + 1)} (${secs(slowest.ms)})។ ពណ៌បៃតង = ត្រឹមត្រូវ, ក្រហម = ខុស ឬមិនបានឆ្លើយ។</p>
-    <div class="dots">${attempt.answers.map((a) => `<a class="dot ${a.correct ? "ok" : "bad"}" href="#q${a.i + 1}">${km(a.i + 1)}</a>`).join("")}</div>
-    <div style="display:grid;gap:22px">${bank.questions.map((q, i) => {
-      const a = attempt.answers[i];
+    <p class="muted small">សំណួរដែលចំណាយពេលយូរបំផុត៖ ទី${km(attempt.answers.indexOf(slowest) + 1)} (${secs(slowest.ms)})។ ពណ៌បៃតង = ត្រឹមត្រូវ, ក្រហម = ខុស ឬមិនបានឆ្លើយ។</p>
+    <div class="dots">${attempt.answers.map((a, i) => `<a class="dot ${a.correct ? "ok" : "bad"}" href="#q${i + 1}">${km(i + 1)}</a>`).join("")}</div>
+    <div style="display:grid;gap:22px">${attempt.answers.map((a, i) => {
+      const q = bank.questions[a.i];
       return `<section id="q${i + 1}" style="display:grid;gap:8px">
-        <div class="row between"><strong>${km(i + 1)}. ${esc(q.q)}</strong><span class="row"><span class="chip lv${q.lv}">${LEVELS[q.lv]}</span><span class="chip">${secs(a.ms)}</span></span></div>
+        <div class="row between"><strong>${km(i + 1)}. ${esc(q.q)}</strong><span class="row"><span class="chip lv${q.lv}">${LEVELS[q.lv]}</span>${a.pts != null ? `<span class="chip pts">${a.correct ? "+" : ""}${km(a.correct ? a.pts : 0)} / ${km(a.pts)}</span>` : ""}<span class="chip">${secs(a.ms)}</span></span></div>
         <div class="opts">${q.o.map((t, k) => `<div class="opt ${k === q.a ? "right" : a.chosen === k ? "wrong" : ""}"><span class="k">${LETTERS[k]}</span><span>${esc(t)}${k === q.a ? " ✓" : ""}${a.chosen === k && k !== q.a ? " ✗ (ចម្លើយរបស់អ្នក)" : ""}</span></div>`).join("")}</div>
         ${a.chosen == null ? `<div class="bad-text small">មិនបានឆ្លើយ</div>` : ""}
         ${q.ex ? `<div class="explain"><strong>ការពន្យល់៖</strong> ${esc(q.ex)}</div>` : ""}
@@ -262,7 +295,7 @@ async function renderHistory() {
   app.innerHTML = `<div class="card">
     <div class="row between"><h1>ប្រវត្តិការធ្វើតេស្ត</h1><button class="btn ghost sm" id="back">← ត្រឡប់</button></div>
     ${attempts.length ? `<div class="tablewrap"><table><thead><tr><th>កាលបរិច្ឆេទ</th><th>មុខវិជ្ជា</th><th>មេរៀន/ជំពូក</th><th class="num">ពិន្ទុ</th><th class="num">ពេល</th></tr></thead><tbody>
-      ${attempts.map((a) => `<tr class="clickable" data-id="${a.id}"><td>${fmtDate(a.finishedAt)}</td><td>${esc(subjectOf(a.subject)?.name)}</td><td>${esc(a.title)}</td><td class="num ${pct(a.score, a.total) >= 50 ? "ok-text" : "bad-text"}">${km(a.score)}/${km(a.total)} (${km(pct(a.score, a.total))}%)</td><td class="num">${mins(a.totalMs)}</td></tr>`).join("")}
+      ${attempts.map((a) => `<tr class="clickable" data-id="${a.id}"><td>${fmtDate(a.finishedAt)}</td><td>${esc(subjectOf(a.subject)?.name)}</td><td>${esc(a.title)}</td><td class="num ${pointsOf(a) >= 50 ? "ok-text" : "bad-text"}">${km(pointsOf(a))} / ១០០ <span class="muted small">(${km(a.score)}/${km(a.total)})</span></td><td class="num">${mins(a.totalMs)}</td></tr>`).join("")}
     </tbody></table></div>` : `<p class="muted">មិនទាន់មានការធ្វើតេស្តទេ។</p>`}
   </div>`;
   $("back").addEventListener("click", renderStudentHome);
@@ -400,12 +433,13 @@ async function renderAdminReports(students) {
   const rep = $("rep");
   if (!attempts.length) { rep.innerHTML = `<p class="muted">សិស្សនេះមិនទាន់បានធ្វើតេស្តណាមួយទេ។</p>`; return; }
   const totalMs = attempts.reduce((a, b) => a + b.totalMs, 0), totalQ = attempts.reduce((a, b) => a + b.total, 0), totalC = attempts.reduce((a, b) => a + b.score, 0);
+  const avgPts = Math.round(attempts.reduce((a, b) => a + pointsOf(b), 0) / attempts.length);
   // per-chapter summary
   const rows = ALL_BANKS.map((id) => {
     const as = attempts.filter((a) => a.bankId === id); if (!as.length) return "";
-    const { s, c } = chapterOf(id); const best = Math.max(...as.map((a) => pct(a.score, a.total))); const last = as[0];
+    const { s, c } = chapterOf(id); const best = Math.max(...as.map((a) => pointsOf(a))); const last = as[0];
     const avgMs = as.reduce((x, a) => x + a.totalMs / a.total, 0) / as.length;
-    return `<tr><td><span style="color:${s.color};font-weight:600">${esc(s.name)}</span><br><span class="small">${s.unit}ទី${km(c.n)} ${esc(c.title)}</span></td><td class="num">${km(as.length)}</td><td class="num">${km(best)}%</td><td class="num">${km(pct(last.score, last.total))}%</td><td><div class="bar"><i style="width:${pct(last.score, last.total)}%"></i></div></td><td class="num">${secs(avgMs)}</td></tr>`;
+    return `<tr><td><span style="color:${s.color};font-weight:600">${esc(s.name)}</span><br><span class="small">${s.unit}ទី${km(c.n)} ${esc(c.title)}</span></td><td class="num">${km(as.length)}</td><td class="num">${km(best)}</td><td class="num">${km(pointsOf(last))}</td><td><div class="bar"><i style="width:${pointsOf(last)}%"></i></div></td><td class="num">${secs(avgMs)}</td></tr>`;
   }).join("");
   // weak spots: questions wrong in latest attempt per bank
   const weak = [];
@@ -413,16 +447,16 @@ async function renderAdminReports(students) {
   rep.innerHTML = `
     <div class="stats">
       <div class="stat"><div class="v">${km(attempts.length)}</div><div class="l">តេស្តបានធ្វើ</div></div>
-      <div class="stat"><div class="v ${pct(totalC, totalQ) >= 50 ? "ok-text" : "bad-text"}">${km(pct(totalC, totalQ))}%</div><div class="l">ត្រឹមត្រូវសរុប (${km(totalC)}/${km(totalQ)})</div></div>
+      <div class="stat"><div class="v ${avgPts >= 50 ? "ok-text" : "bad-text"}">${km(avgPts)} / ១០០</div><div class="l">ពិន្ទុមធ្យម · ត្រឹមត្រូវ ${km(totalC)}/${km(totalQ)} សំណួរ</div></div>
       <div class="stat"><div class="v">${mins(totalMs)}</div><div class="l">ពេលសរុប</div></div>
       <div class="stat"><div class="v">${fmtDate(attempts[0].finishedAt)}</div><div class="l">ចុងក្រោយ</div></div>
     </div>
     <h2 style="margin-top:14px">សង្ខេបតាមមេរៀន/ជំពូក</h2>
-    <div class="tablewrap"><table><thead><tr><th>មេរៀន/ជំពូក</th><th class="num">ដង</th><th class="num">ល្អបំផុត</th><th class="num">ចុងក្រោយ</th><th></th><th class="num">មធ្យម/សំណួរ</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="tablewrap"><table><thead><tr><th>មេរៀន/ជំពូក</th><th class="num">ដង</th><th class="num">ល្អបំផុត /១០០</th><th class="num">ចុងក្រោយ /១០០</th><th></th><th class="num">មធ្យម/សំណួរ</th></tr></thead><tbody>${rows}</tbody></table></div>
     <h2 style="margin-top:14px">តេស្តទាំងអស់ <span class="muted small">(ចុចដើម្បីមើលលម្អិតតាមសំណួរ និងពេលវេលា)</span></h2>
     <div class="tablewrap"><table><thead><tr><th>កាលបរិច្ឆេទ</th><th>មេរៀន/ជំពូក</th><th class="num">ពិន្ទុ</th><th class="num">ងាយ</th><th class="num">មធ្យម</th><th class="num">ពិបាក</th><th class="num">ពេល</th></tr></thead><tbody>
       ${attempts.map((a) => { const lv = (l) => { const x = a.answers.filter((z) => z.lv === l); return `${km(x.filter((z) => z.correct).length)}/${km(x.length)}`; };
-        return `<tr class="clickable" data-id="${a.id}"><td>${fmtDate(a.finishedAt)}</td><td>${esc(subjectOf(a.subject)?.name)} · ${esc(a.title)}</td><td class="num ${pct(a.score, a.total) >= 50 ? "ok-text" : "bad-text"}">${km(a.score)}/${km(a.total)} (${km(pct(a.score, a.total))}%)</td><td class="num">${lv(1)}</td><td class="num">${lv(2)}</td><td class="num">${lv(3)}</td><td class="num">${mins(a.totalMs)}</td></tr>`; }).join("")}
+        return `<tr class="clickable" data-id="${a.id}"><td>${fmtDate(a.finishedAt)}</td><td>${esc(subjectOf(a.subject)?.name)} · ${esc(a.title)}</td><td class="num ${pointsOf(a) >= 50 ? "ok-text" : "bad-text"}">${km(pointsOf(a))} / ១០០ <span class="muted small">(${km(a.score)}/${km(a.total)})</span></td><td class="num">${lv(1)}</td><td class="num">${lv(2)}</td><td class="num">${lv(3)}</td><td class="num">${mins(a.totalMs)}</td></tr>`; }).join("")}
     </tbody></table></div>
     ${weak.length ? `<h2 style="margin-top:14px">សំណួរដែលខុសក្នុងតេស្តចុងក្រោយ (${km(weak.length)})</h2>
     <div class="tablewrap"><table><thead><tr><th>មេរៀន/ជំពូក</th><th>សំណួរ</th><th>កម្រិត</th><th class="num">ពេល</th></tr></thead><tbody>
