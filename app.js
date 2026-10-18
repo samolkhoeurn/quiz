@@ -4,7 +4,7 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=7";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=8";
 import { SUBJECTS, LEVELS } from "./data/subjects.js";
 
 /* ---------- helpers ---------- */
@@ -14,9 +14,18 @@ const km = (n) => String(n).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨�
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // Math formatting: draw √ and ∛ with an overline that spans the radicand.  √(a+b) → bar over "a+b";  √49, 2√3, √0,09, √x² → bar over the token.
 const RAD_TOKEN = String.raw`(?:\d+(?:[,.]\d+)?|[a-zA-Z])(?:[²³])?`;
+const RAD_SPAN = String.raw`<span class="rad">(?:(?!<\/span><\/span>).)*<\/span><\/span>`;
+const FRAC_SIDE = String.raw`(?:\d*(?:${RAD_SPAN})|\d+(?:[,.]\d+)?[a-zA-Zπ]?′?|[a-zA-Zπ]′?|\([^()]*\))`;
+const FRAC_RE = new RegExp(String.raw`(?<![\w/])(${FRAC_SIDE})\s*/\s*(${FRAC_SIDE})(?![/\d])`, "g");
 const mf = (s) => esc(s)
   .replace(/([√∛])\(([^()]*)\)/g, (m, r, inner) => `<span class="rad"><span class="rs">${r}</span><span class="ri">${inner}</span></span>`)
-  .replace(new RegExp(`([√∛])(${RAD_TOKEN})`, "g"), (m, r, tok) => `<span class="rad"><span class="rs">${r}</span><span class="ri">${tok}</span></span>`);
+  .replace(new RegExp(`([√∛])(${RAD_TOKEN})`, "g"), (m, r, tok) => `<span class="rad"><span class="rs">${r}</span><span class="ri">${tok}</span></span>`)
+  .replace(FRAC_RE, (m, num, den) => {
+    // stack only real fractions (a side has a digit, a radical or a bracket); leave units like m/s, km/h, a/b inline
+    if (!/\d|class="rad"|\(/.test(num + den)) return m;
+    const strip = (x) => (x.startsWith("(") && x.endsWith(")") ? x.slice(1, -1) : x);
+    return `<span class="frac"><span class="fn">${strip(num)}</span><span class="fd">${strip(den)}</span></span>`;
+  });
 const LETTERS = ["ក", "ខ", "គ", "ឃ"];
 const pct = (s, t) => (t ? Math.round((100 * s) / t) : 0);
 const pointsOf = (a) => (a.points != null ? a.points : pct(a.score, a.total));   // older attempts had no points field → % correct

@@ -130,3 +130,8 @@ tr.clickable{cursor:pointer} tr.clickable:hover td{background:var(--soft)}
 .rad{white-space:nowrap;display:inline-flex;align-items:flex-start}
 .rad .rs{font-size:1.2em;line-height:1;position:relative;top:.02em}
 .rad .ri{border-top:1.5px solid currentColor;padding:.05em .15em 0 .1em;margin-left:-.12em;line-height:1.15}
+
+/* stacked fractions */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-size:.88em;line-height:1.15;margin:0 .15em;text-align:center}
+.frac .fn{border-bottom:1.5px solid currentColor;padding:0 .25em .05em}
+.frac .fd{padding:.05em .25em 0}
