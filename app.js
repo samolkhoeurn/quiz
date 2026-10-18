@@ -4,7 +4,7 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=5";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=6";
 import { SUBJECTS, LEVELS } from "./data/subjects.js";
 
 /* ---------- helpers ---------- */
@@ -426,7 +426,7 @@ async function renderAdminReports(students) {
   S.admin.sel = sel.uid;
   body.innerHTML = `<div style="display:grid;gap:14px;margin-top:14px">
     <div class="row between"><div class="field"><label for="pick">សិស្ស</label><select id="pick">${students.map((u) => `<option value="${u.uid}" ${u.uid === sel.uid ? "selected" : ""}>${esc(u.displayName || u.username)} (@${esc(u.username)})</option>`).join("")}</select></div><button class="btn ghost sm" id="refresh">ផ្ទុកឡើងវិញ</button></div>
-    <div id="rep"><p class="muted">កំពុងផ្ទុក…</p></div></div>`;
+    <div id="rep"><p class="muted">កំពុងទាញ…</p></div></div>`;
   $("pick").addEventListener("change", (e) => { S.admin.sel = e.target.value; renderAdminReports(students); });
   $("refresh").addEventListener("click", async () => { await studentAttempts(sel.uid, true); renderAdminReports(students); });
   const attempts = await studentAttempts(sel.uid);
