@@ -4,12 +4,12 @@
 //  Project settings → General → Your apps → SDK setup and configuration
 // ===================================================================
 export const firebaseConfig = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  storageBucket: "PASTE_PROJECT_ID.appspot.com",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId: "PASTE_APP_ID",
+  apiKey: "AIzaSyC2x_MUaUszkrtR5MFDAf_WmnNVRCmthG0",
+  authDomain: "khmer-quiz-aa213.firebaseapp.com",
+  projectId: "khmer-quiz-aa213",
+  storageBucket: "khmer-quiz-aa213.firebasestorage.app",
+  messagingSenderId: "261600310413",
+  appId: "1:261600310413:web:06647a1aa85df7185e1ec4",
 };
 
 // The one e-mail address that gets the admin screen.
