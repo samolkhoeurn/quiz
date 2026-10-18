@@ -125,3 +125,8 @@ tr.clickable{cursor:pointer} tr.clickable:hover td{background:var(--soft)}
 @media (max-width:640px){.card{padding:16px}.qhead{font-size:.9rem}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .chip.pts{border-color:var(--gold);color:var(--gold);font-weight:600}
+
+/* radicals: √ sign + overline across the radicand */
+.rad{white-space:nowrap;display:inline-flex;align-items:flex-start}
+.rad .rs{font-size:1.2em;line-height:1;position:relative;top:.02em}
+.rad .ri{border-top:1.5px solid currentColor;padding:.05em .15em 0 .1em;margin-left:-.12em;line-height:1.15}

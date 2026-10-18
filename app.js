@@ -4,7 +4,7 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=6";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=7";
 import { SUBJECTS, LEVELS } from "./data/subjects.js";
 
 /* ---------- helpers ---------- */
@@ -12,6 +12,11 @@ const $ = (id) => document.getElementById(id);
 const app = $("app"), topnav = $("topnav");
 const km = (n) => String(n).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[d]);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// Math formatting: draw √ and ∛ with an overline that spans the radicand.  √(a+b) → bar over "a+b";  √49, 2√3, √0,09, √x² → bar over the token.
+const RAD_TOKEN = String.raw`(?:\d+(?:[,.]\d+)?|[a-zA-Z])(?:[²³])?`;
+const mf = (s) => esc(s)
+  .replace(/([√∛])\(([^()]*)\)/g, (m, r, inner) => `<span class="rad"><span class="rs">${r}</span><span class="ri">${inner}</span></span>`)
+  .replace(new RegExp(`([√∛])(${RAD_TOKEN})`, "g"), (m, r, tok) => `<span class="rad"><span class="rs">${r}</span><span class="ri">${tok}</span></span>`);
 const LETTERS = ["ក", "ខ", "គ", "ឃ"];
 const pct = (s, t) => (t ? Math.round((100 * s) / t) : 0);
 const pointsOf = (a) => (a.points != null ? a.points : pct(a.score, a.total));   // older attempts had no points field → % correct
@@ -211,8 +216,8 @@ function renderQuestion() {
     ${Q.quitConfirm ? `<div class="notice bad row between"><span>បោះបង់ការធ្វើតេស្តនេះ? ចម្លើយនឹងមិនត្រូវបានរក្សាទុកទេ។</span><span class="row"><button class="btn danger sm" id="quitYes">បាទ/ចាស បោះបង់</button><button class="btn ghost sm" id="quitNo">បន្តធ្វើ</button></span></div>` : ""}
     <div class="qhead"><span class="muted">សំណួរទី ${km(Q.i + 1)} / ${km(n)} · បានឆ្លើយ ${km(answered)}</span><span class="row"><span class="chip lv${q.lv}">${LEVELS[q.lv]}</span><span class="chip pts">${km(q.pts)} ពិន្ទុ</span></span></div>
     <div class="progressbar"><i style="width:${(100 * answered) / n}%"></i></div>
-    <p class="qtext">${km(Q.i + 1)}. ${esc(q.q)}</p>
-    <div class="opts">${q.o.map((t, k) => `<button class="opt ${Q.chosen[Q.i] === k ? "sel" : ""}" data-k="${k}" aria-pressed="${Q.chosen[Q.i] === k}"><span class="k">${LETTERS[k]}</span><span>${esc(t)}</span></button>`).join("")}</div>
+    <p class="qtext">${km(Q.i + 1)}. ${mf(q.q)}</p>
+    <div class="opts">${q.o.map((t, k) => `<button class="opt ${Q.chosen[Q.i] === k ? "sel" : ""}" data-k="${k}" aria-pressed="${Q.chosen[Q.i] === k}"><span class="k">${LETTERS[k]}</span><span>${mf(t)}</span></button>`).join("")}</div>
     <div class="dots">${Q.qs.map((_, k) => `<button class="dot ${Q.chosen[k] != null ? "done" : ""} ${k === Q.i ? "cur" : ""}" data-go="${k}" title="សំណួរទី ${km(k + 1)}">${km(k + 1)}</button>`).join("")}</div>
     ${Q.confirm ? `<div class="notice warn row between"><span>${answered < n ? `នៅសល់ ${km(n - answered)} សំណួរមិនទាន់ឆ្លើយ។ ` : ""}ដាក់ស្នើឥឡូវនេះ? បន្ទាប់ពីដាក់ស្នើ មិនអាចកែចម្លើយបានទេ។</span><span class="row"><button class="btn primary sm" id="submitYes">ដាក់ស្នើ</button><button class="btn ghost sm" id="submitNo">ត្រឡប់</button></span></div>` : ""}
     <div class="row between">
@@ -277,10 +282,10 @@ async function renderResult(attempt, bank, back, who) {
     <div style="display:grid;gap:22px">${attempt.answers.map((a, i) => {
       const q = bank.questions[a.i];
       return `<section id="q${i + 1}" style="display:grid;gap:8px">
-        <div class="row between"><strong>${km(i + 1)}. ${esc(q.q)}</strong><span class="row"><span class="chip lv${q.lv}">${LEVELS[q.lv]}</span>${a.pts != null ? `<span class="chip pts">${a.correct ? "+" : ""}${km(a.correct ? a.pts : 0)} / ${km(a.pts)}</span>` : ""}<span class="chip">${secs(a.ms)}</span></span></div>
-        <div class="opts">${q.o.map((t, k) => `<div class="opt ${k === q.a ? "right" : a.chosen === k ? "wrong" : ""}"><span class="k">${LETTERS[k]}</span><span>${esc(t)}${k === q.a ? " ✓" : ""}${a.chosen === k && k !== q.a ? " ✗ (ចម្លើយរបស់អ្នក)" : ""}</span></div>`).join("")}</div>
+        <div class="row between"><strong>${km(i + 1)}. ${mf(q.q)}</strong><span class="row"><span class="chip lv${q.lv}">${LEVELS[q.lv]}</span>${a.pts != null ? `<span class="chip pts">${a.correct ? "+" : ""}${km(a.correct ? a.pts : 0)} / ${km(a.pts)}</span>` : ""}<span class="chip">${secs(a.ms)}</span></span></div>
+        <div class="opts">${q.o.map((t, k) => `<div class="opt ${k === q.a ? "right" : a.chosen === k ? "wrong" : ""}"><span class="k">${LETTERS[k]}</span><span>${mf(t)}${k === q.a ? " ✓" : ""}${a.chosen === k && k !== q.a ? " ✗ (ចម្លើយរបស់អ្នក)" : ""}</span></div>`).join("")}</div>
         ${a.chosen == null ? `<div class="bad-text small">មិនបានឆ្លើយ</div>` : ""}
-        ${q.ex ? `<div class="explain"><strong>ការពន្យល់៖</strong> ${esc(q.ex)}</div>` : ""}
+        ${q.ex ? `<div class="explain"><strong>ការពន្យល់៖</strong> ${mf(q.ex)}</div>` : ""}
       </section>`;
     }).join("")}</div>
     <div class="row between"><button class="btn ghost" id="back2">← ត្រឡប់</button>${who ? "" : `<button class="btn primary" id="again">ធ្វើម្តងទៀត</button>`}</div>
@@ -460,7 +465,7 @@ async function renderAdminReports(students) {
     </tbody></table></div>
     ${weak.length ? `<h2 style="margin-top:14px">សំណួរដែលខុសក្នុងតេស្តចុងក្រោយ (${km(weak.length)})</h2>
     <div class="tablewrap"><table><thead><tr><th>មេរៀន/ជំពូក</th><th>សំណួរ</th><th>កម្រិត</th><th class="num">ពេល</th></tr></thead><tbody>
-      ${weak.map(({ bank, a }) => `<tr><td class="small">${esc(bank.title)}</td><td>${km(a.i + 1)}. ${esc(bank.questions[a.i].q)}</td><td><span class="chip lv${a.lv}">${LEVELS[a.lv]}</span></td><td class="num">${secs(a.ms)}</td></tr>`).join("")}
+      ${weak.map(({ bank, a }) => `<tr><td class="small">${esc(bank.title)}</td><td>${km(a.i + 1)}. ${mf(bank.questions[a.i].q)}</td><td><span class="chip lv${a.lv}">${LEVELS[a.lv]}</span></td><td class="num">${secs(a.ms)}</td></tr>`).join("")}
     </tbody></table></div>` : ""}`;
   rep.querySelectorAll("[data-id]").forEach((r) => r.addEventListener("click", () => renderResult(attempts.find((a) => a.id === r.dataset.id), null, () => renderAdmin("reports"), `អ្នកគ្រប់គ្រង · ${S.user.email}`)));
 }
