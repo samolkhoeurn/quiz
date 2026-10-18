@@ -1,6 +1,6 @@
 # រៀនថ្នាក់ទី៩ · កម្រងសំណួរ
 
-Practice quizzes for a Cambodian grade 9 student (MoEYS curriculum) in Khmer, plus the two-team general-knowledge game.
+Practice quizzes for a Cambodian grade 9 student: the four MoEYS subjects in Khmer (31 chapters), an English *Mathematics (Year 9)* subject following the Australian Curriculum v9.0 (14 chapters), plus the two-team general-knowledge game.
 
 | File | What it is |
 |---|---|
@@ -8,7 +8,7 @@ Practice quizzes for a Cambodian grade 9 student (MoEYS curriculum) in Khmer, pl
 | `firebase-config.js` | Your Firebase project settings + the admin e-mail (see `SETUP.md`) |
 | `firestore.rules` | Security rules to paste into Firebase (admin = one e-mail; students see only their own data) |
 | `data/subjects.js` | Subjects and their official chapter/lesson lists; `bank: true` marks chapters that have questions |
-| `data/<subject>-<nn>.js` | One question bank per chapter: `{lv, q, o[4], a, ex}` — level 1/2/3, question, options, correct index, explanation |
+| `data/<subject>-<nn>.js` | One question bank per chapter: `{lv, q, o[4], a, ex}` — level 1/2/3, question, options, correct index, explanation. English banks (`enmath-*`) write maths in LaTeX between `$…$`, rendered by KaTeX |
 | `general.html` | The original two-team general-knowledge quiz (no login) |
 
 Chapter lists follow the MoEYS textbooks: *កំណែលំហាត់គណិតវិទ្យាទី៩* (18 lessons), *ឯកសារស្វ័យសិក្សារូបវិទ្យាទី៩* (5 chapters),

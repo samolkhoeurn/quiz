@@ -54,6 +54,25 @@ export const SUBJECTS = [
       { id: "biology-05", n: 5, title: "ផលប៉ះពាល់បណ្តាលមកពីមនុស្សលើប្រព័ន្ធធម្មជាតិ", sub: "អំពើរបស់មនុស្សលើបរិស្ថាន · ការបំពុលបរិស្ថាន", bank: true },
     ],
   },
+  {
+    id: "enmath", name: "Mathematics (Year 9)", en: "Australian Curriculum v9.0 · in English", color: "#0f766e", unit: "Chapter", lang: "en",
+    chapters: [
+      { id: "enmath-01", n: 1, title: "Real numbers and surds", sub: "rational vs irrational · simplifying surds · estimating roots · rounding", bank: true },
+      { id: "enmath-02", n: 2, title: "Index laws and scientific notation", sub: "integer indices · index laws with variables · very large and very small numbers", bank: true },
+      { id: "enmath-03", n: 3, title: "Ratios, rates and direct proportion", sub: "simplifying ratios · sharing · unit rates · speed · scale drawings · direct proportion", bank: true },
+      { id: "enmath-04", n: 4, title: "Financial mathematics", sub: "percentages · discounts and GST · simple interest · compound interest · best buys", bank: true },
+      { id: "enmath-05", n: 5, title: "Algebraic expressions", sub: "simplifying · expanding binomial products · factorising monic quadratics", bank: true },
+      { id: "enmath-06", n: 6, title: "Linear equations and modelling", sub: "solving equations with brackets and fractions · rearranging formulas · word problems", bank: true },
+      { id: "enmath-07", n: 7, title: "Linear graphs", sub: "gradient · midpoint · distance · y = mx + c · sketching · parallel lines", bank: true },
+      { id: "enmath-08", n: 8, title: "Quadratic functions and equations", sub: "parabolas · transformations of y = x² · solving monic quadratics by factorising", bank: true },
+      { id: "enmath-09", n: 9, title: "Surface area, volume and measurement error", sub: "prisms and cylinders · composite shapes · units · absolute and percentage error", bank: true },
+      { id: "enmath-10", n: 10, title: "Pythagoras' theorem", sub: "hypotenuse and shorter sides · converse · applications · exact surd answers", bank: true },
+      { id: "enmath-11", n: 11, title: "Trigonometry in right-angled triangles", sub: "sine, cosine and tangent · finding sides and angles · elevation and depression", bank: true },
+      { id: "enmath-12", n: 12, title: "Similarity, enlargement and scale", sub: "similar triangles · scale factor · enlargements · areas of similar figures", bank: true },
+      { id: "enmath-13", n: 13, title: "Statistics and data", sub: "sampling and bias · histograms and box plots · mean, median, range · comparing distributions · outliers", bank: true },
+      { id: "enmath-14", n: 14, title: "Probability", sub: "compound events · tree diagrams · two-way tables · Venn diagrams · relative frequency", bank: true },
+    ],
+  },
 ];
 
 export const LEVELS = { 1: "ងាយ", 2: "មធ្យម", 3: "ពិបាក" };

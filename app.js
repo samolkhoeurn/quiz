@@ -4,7 +4,7 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=8";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=9";
 import { SUBJECTS, LEVELS } from "./data/subjects.js";
 
 /* ---------- helpers ---------- */
@@ -17,7 +17,7 @@ const RAD_TOKEN = String.raw`(?:\d+(?:[,.]\d+)?|[a-zA-Z])(?:[²³])?`;
 const RAD_SPAN = String.raw`<span class="rad">(?:(?!<\/span><\/span>).)*<\/span><\/span>`;
 const FRAC_SIDE = String.raw`(?:\d*(?:${RAD_SPAN})|\d+(?:[,.]\d+)?[a-zA-Zπ]?′?|[a-zA-Zπ]′?|\([^()]*\))`;
 const FRAC_RE = new RegExp(String.raw`(?<![\w/])(${FRAC_SIDE})\s*/\s*(${FRAC_SIDE})(?![/\d])`, "g");
-const mf = (s) => esc(s)
+const mfPlain = (s) => esc(s)
   .replace(/([√∛])\(([^()]*)\)/g, (m, r, inner) => `<span class="rad"><span class="rs">${r}</span><span class="ri">${inner}</span></span>`)
   .replace(new RegExp(`([√∛])(${RAD_TOKEN})`, "g"), (m, r, tok) => `<span class="rad"><span class="rs">${r}</span><span class="ri">${tok}</span></span>`)
   .replace(FRAC_RE, (m, num, den) => {
@@ -26,6 +26,18 @@ const mf = (s) => esc(s)
     const strip = (x) => (x.startsWith("(") && x.endsWith(")") ? x.slice(1, -1) : x);
     return `<span class="frac"><span class="fn">${strip(num)}</span><span class="fd">${strip(den)}</span></span>`;
   });
+// LaTeX-aware formatting: text between unescaped $…$ is typeset with KaTeX (loaded in index.html); \$ is a literal dollar.
+// Strings without $ go through the plain-text rules above (used by the Khmer banks).
+const mf = (s) => {
+  const str = String(s ?? "");
+  if (!str.includes("$")) return mfPlain(str);
+  const parts = str.split(/(?<!\\)\$/);           // odd indexes are math
+  return parts.map((seg, k) => {
+    if (k % 2 === 0) return esc(seg.replace(/\\\$/g, "$"));
+    if (!window.katex) return `<code>${esc(seg)}</code>`;
+    try { return window.katex.renderToString(seg, { throwOnError: false, output: "html" }); } catch { return esc(seg); }
+  }).join("");
+};
 const LETTERS = ["ក", "ខ", "គ", "ឃ"];
 const pct = (s, t) => (t ? Math.round((100 * s) / t) : 0);
 const pointsOf = (a) => (a.points != null ? a.points : pct(a.score, a.total));   // older attempts had no points field → % correct
@@ -55,6 +67,7 @@ const secs = (ms) => km((ms / 1000).toFixed(1).replace(".", ",")) + " វិ";
 const mins = (ms) => { const s = Math.round(ms / 1000); return s < 60 ? km(s) + " វិ" : `${km(Math.floor(s / 60))} នាទី ${km(s % 60)} វិ`; };
 const fmtDate = (ms) => { const d = new Date(ms); return km(`${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`); };
 const subjectOf = (id) => SUBJECTS.find((s) => s.id === id);
+const unitOf = (s, c) => (s.lang === "en" ? `${s.unit} ${c.n}` : `${s.unit}ទី${km(c.n)}`);   // "Chapter 3" vs "មេរៀនទី៣"
 const chapterOf = (bankId) => { for (const s of SUBJECTS) { const c = s.chapters.find((c) => c.id === bankId); if (c) return { s, c }; } return null; };
 const ALL_BANKS = SUBJECTS.flatMap((s) => s.chapters.filter((c) => c.bank).map((c) => c.id));
 const studentEmail = (u) => `${u.trim().toLowerCase()}@${STUDENT_EMAIL_DOMAIN}`;
@@ -154,7 +167,7 @@ async function renderStudentHome() {
       const n = s.chapters.filter((c) => allowed.has(c.id) && c.bank).length;
       const done = attempts.filter((a) => a.subject === s.id).length;
       return `<button class="subject" style="--sc:${s.color}" data-subj="${s.id}" ${n ? "" : "disabled"}>
-        <span class="name">${esc(s.name)}</span><span class="cnt">${n ? `${km(n)} ${s.unit}បើកឲ្យអនុវត្ត` : "មិនទាន់បើក"}</span>
+        <span class="name">${esc(s.name)}</span><span class="cnt">${n ? (s.lang === "en" ? `${n} ${s.unit.toLowerCase()}${n > 1 ? "s" : ""} open` : `${km(n)} ${s.unit}បើកឲ្យអនុវត្ត`) : "មិនទាន់បើក"}</span>
         <span class="cnt">${done ? `បានធ្វើ ${km(done)} ដង` : ""}</span></button>`;
     }).join("")}</div>
   </div>`;
@@ -173,7 +186,7 @@ async function renderChapterList(subjId) {
       const best = mine.length ? Math.max(...mine.map((a) => pointsOf(a))) : null;
       const meta = !c.bank ? "មិនទាន់មានសំណួរ" : !allowed.has(c.id) ? "មិនទាន់បើក" : mine.length ? `បានធ្វើ ${km(mine.length)} ដង<br>ល្អបំផុត ${km(best)} / ១០០` : "មិនទាន់ធ្វើ";
       return `<button class="chapter" style="--sc:${s.color}" data-bank="${c.id}" ${open ? "" : "disabled"}>
-        <span class="n">${km(c.n)}</span><span class="t">${s.unit}ទី${km(c.n)}៖ ${esc(c.title)}${c.sub ? `<span class="sub">${esc(c.sub)}</span>` : ""}</span><span class="meta">${meta}</span></button>`;
+        <span class="n">${km(c.n)}</span><span class="t">${unitOf(s, c)}៖ ${esc(c.title)}${c.sub ? `<span class="sub">${esc(c.sub)}</span>` : ""}</span><span class="meta">${meta}</span></button>`;
     }).join("")}</div>
   </div>`;
   $("back").addEventListener("click", renderStudentHome);
@@ -184,7 +197,7 @@ async function renderQuizIntro(bankId) {
   const bank = await loadBank(bankId), { s, c } = chapterOf(bankId);
   const n = bank.questions.length, size = Math.min(bank.quizSize || QUIZ_SIZE, n), lv = [1, 2, 3].map((l) => bank.questions.filter((q) => q.lv === l).length);
   app.innerHTML = `<div class="card">
-    <div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(s.name)}</span><span class="chip">${s.unit}ទី${km(c.n)}</span></div>
+    <div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(s.name)}</span><span class="chip">${unitOf(s, c)}</span></div>
     <h1>${esc(bank.title)}</h1>
     <div class="stats">
       <div class="stat"><div class="v">${km(size)}</div><div class="l">សំណួរក្នុងតេស្តម្តង</div></div>
@@ -277,7 +290,7 @@ async function renderResult(attempt, bank, back, who) {
   const slowest = [...attempt.answers].sort((a, b) => b.ms - a.ms)[0];
   nav(`${who ? `<span class="who">${esc(who)}</span>` : ""}${logoutBtn()}`);
   app.innerHTML = `<div class="card">
-    <div class="row between"><div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(s.name)}</span><span class="chip">${s.unit}ទី${km(c.n)}</span><span class="chip">${fmtDate(attempt.finishedAt)}</span></div><button class="btn ghost sm" id="back">← ត្រឡប់</button></div>
+    <div class="row between"><div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(s.name)}</span><span class="chip">${unitOf(s, c)}</span><span class="chip">${fmtDate(attempt.finishedAt)}</span></div><button class="btn ghost sm" id="back">← ត្រឡប់</button></div>
     <h1>${esc(bank.title)} — លទ្ធផល${attempt.displayName ? ` របស់ ${esc(attempt.displayName)}` : ""}</h1>
     ${attempt.saveError ? `<div class="notice bad">លទ្ធផលមិនត្រូវបានរក្សាទុកទេ (${esc(attempt.saveError)})។ សូមថតអេក្រង់ទុក។</div>` : ""}
     <div class="stats">
@@ -393,7 +406,7 @@ function permPanel(u) {
       <label class="row small"><input type="checkbox" id="active" ${u.active === false ? "" : "checked"}> គណនីសកម្ម</label></div>
     <p class="muted small">ធីកមេរៀន/ជំពូកដែលសិស្សអាចធ្វើបាន។ ជំពូកដែលមិនទាន់មានសំណួរ បង្ហាញស្រអាប់។</p>
     ${SUBJECTS.map((s) => `<div class="subjhead"><h3 style="color:${s.color}">${esc(s.name)}</h3><span class="row"><button class="btn ghost sm" data-all="${s.id}">ទាំងអស់</button><button class="btn ghost sm" data-none="${s.id}">គ្មាន</button></span></div>
-      <div class="checks">${s.chapters.map((c) => `<label class="check ${c.bank ? "" : "no"}"><input type="checkbox" data-ch="${c.id}" data-s="${s.id}" ${allowed.has(c.id) ? "checked" : ""} ${c.bank ? "" : "disabled"}><span>${s.unit}ទី${km(c.n)}៖ ${esc(c.title)}${c.bank ? "" : " <span class='muted small'>(មិនទាន់មានសំណួរ)</span>"}</span></label>`).join("")}</div>`).join("")}
+      <div class="checks">${s.chapters.map((c) => `<label class="check ${c.bank ? "" : "no"}"><input type="checkbox" data-ch="${c.id}" data-s="${s.id}" ${allowed.has(c.id) ? "checked" : ""} ${c.bank ? "" : "disabled"}><span>${unitOf(s, c)}៖ ${esc(c.title)}${c.bank ? "" : " <span class='muted small'>(មិនទាន់មានសំណួរ)</span>"}</span></label>`).join("")}</div>`).join("")}
     <div class="row between"><span id="permMsg" class="small">${S.admin.permSaved ? `<span class="ok-text">បានរក្សាទុក ✓</span>` : ""}</span><button class="btn primary" id="savePerm">រក្សាទុកសិទ្ធិ</button></div>
   </div>`;
 }
@@ -453,7 +466,7 @@ async function renderAdminReports(students) {
     const as = attempts.filter((a) => a.bankId === id); if (!as.length) return "";
     const { s, c } = chapterOf(id); const best = Math.max(...as.map((a) => pointsOf(a))); const last = as[0];
     const avgMs = as.reduce((x, a) => x + a.totalMs / a.total, 0) / as.length;
-    return `<tr><td><span style="color:${s.color};font-weight:600">${esc(s.name)}</span><br><span class="small">${s.unit}ទី${km(c.n)} ${esc(c.title)}</span></td><td class="num">${km(as.length)}</td><td class="num">${km(best)}</td><td class="num">${km(pointsOf(last))}</td><td><div class="bar"><i style="width:${pointsOf(last)}%"></i></div></td><td class="num">${secs(avgMs)}</td></tr>`;
+    return `<tr><td><span style="color:${s.color};font-weight:600">${esc(s.name)}</span><br><span class="small">${unitOf(s, c)} ${esc(c.title)}</span></td><td class="num">${km(as.length)}</td><td class="num">${km(best)}</td><td class="num">${km(pointsOf(last))}</td><td><div class="bar"><i style="width:${pointsOf(last)}%"></i></div></td><td class="num">${secs(avgMs)}</td></tr>`;
   }).join("");
   // weak spots: questions wrong in latest attempt per bank
   const weak = [];
@@ -485,7 +498,7 @@ async function renderAdminBanks() {
   for (const s of SUBJECTS) for (const c of s.chapters) {
     let n = "", lv = "";
     if (c.bank) { const b = await loadBank(c.id); n = km(b.questions.length); lv = [1, 2, 3].map((l) => km(b.questions.filter((q) => q.lv === l).length)).join(" / "); }
-    items.push(`<tr><td><span style="color:${s.color};font-weight:600">${esc(s.name)}</span></td><td>${s.unit}ទី${km(c.n)}៖ ${esc(c.title)}${c.sub ? `<br><span class="muted small">${esc(c.sub)}</span>` : ""}</td><td>${c.bank ? `<span class="ok-text">មាន</span>` : `<span class="muted">មិនទាន់</span>`}</td><td class="num">${n}</td><td class="num">${lv}</td></tr>`);
+    items.push(`<tr><td><span style="color:${s.color};font-weight:600">${esc(s.name)}</span></td><td>${unitOf(s, c)}៖ ${esc(c.title)}${c.sub ? `<br><span class="muted small">${esc(c.sub)}</span>` : ""}</td><td>${c.bank ? `<span class="ok-text">មាន</span>` : `<span class="muted">មិនទាន់</span>`}</td><td class="num">${n}</td><td class="num">${lv}</td></tr>`);
   }
   body.innerHTML = `<div style="margin-top:14px;display:grid;gap:10px">
     <p class="muted small">សំណួររក្សាទុកក្នុងឯកសារ <code>data/&lt;id&gt;.js</code> ក្នុង repository ។ ដើម្បីបន្ថែមជំពូក៖ បន្ថែមឯកសារ រួចដាក់ <code>bank: true</code> ក្នុង <code>data/subjects.js</code> ហើយ push ។</p>
