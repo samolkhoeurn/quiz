@@ -4,7 +4,7 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=4";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=5";
 import { SUBJECTS, LEVELS } from "./data/subjects.js";
 
 /* ---------- helpers ---------- */
@@ -14,7 +14,7 @@ const km = (n) => String(n).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨�
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const LETTERS = ["ក", "ខ", "គ", "ឃ"];
 const pct = (s, t) => (t ? Math.round((100 * s) / t) : 0);
-const pointsOf = (a) => (a.points != null ? a.points : pointsOf(a));   // older attempts had no points field
+const pointsOf = (a) => (a.points != null ? a.points : pct(a.score, a.total));   // older attempts had no points field → % correct
 const WEIGHT = { 1: 1, 2: 2, 3: 3 };          // relative weight of easy / medium / hard
 const QUIZ_SIZE = 25;                          // questions drawn per attempt (bank may hold up to 100)
 const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
