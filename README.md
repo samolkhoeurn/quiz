@@ -14,6 +14,10 @@ Practice quizzes for a Cambodian grade 9 student (MoEYS curriculum) in Khmer, pl
 Chapter lists follow the MoEYS textbooks: *កំណែលំហាត់គណិតវិទ្យាទី៩* (18 lessons), *ឯកសារស្វ័យសិក្សារូបវិទ្យាទី៩* (5 chapters),
 *សៀវភៅកិច្ចការផ្ទះជីវវិទ្យាទី៩* (5 chapters), and the MoEYS e-learning chemistry outline (3 chapters).
 
+## Architecture
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) (diagrams render on GitHub) or the full page at [docs/architecture.html](https://samolkhoeurn.github.io/quiz/docs/architecture.html).
+
 ## Adding a chapter
 
 1. Copy an existing file in `data/`, e.g. `data/math-02.js`, keep `id` equal to the file name.
