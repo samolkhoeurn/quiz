@@ -1,17 +1,21 @@
-# ប្រឡងប្រជ្ញា ក្រុម A និង B
+# រៀនថ្នាក់ទី៩ · កម្រងសំណួរ
 
-A two-team Khmer general-knowledge quiz: 30 questions (9 Cambodia, 6 ASEAN, 15 world), 100 points in total.
-Easy questions are worth 2 points, medium 3 and hard 5.
+Practice quizzes for a Cambodian grade 9 student (MoEYS curriculum) in Khmer, plus the two-team general-knowledge game.
 
-The whole site is the single file `index.html` — no build step, no server. It is published with GitHub Pages.
+| File | What it is |
+|---|---|
+| `index.html`, `app.js`, `styles.css` | The learning app: student login, chapter picker, timed quizzes (answers shown only after submit), reports, admin panel |
+| `firebase-config.js` | Your Firebase project settings + the admin e-mail (see `SETUP.md`) |
+| `firestore.rules` | Security rules to paste into Firebase (admin = one e-mail; students see only their own data) |
+| `data/subjects.js` | Subjects and their official chapter/lesson lists; `bank: true` marks chapters that have questions |
+| `data/<subject>-<nn>.js` | One question bank per chapter: `{lv, q, o[4], a, ex}` — level 1/2/3, question, options, correct index, explanation |
+| `general.html` | The original two-team general-knowledge quiz (no login) |
 
-## Editing questions
+Chapter lists follow the MoEYS textbooks: *កំណែលំហាត់គណិតវិទ្យាទី៩* (18 lessons), *ឯកសារស្វ័យសិក្សារូបវិទ្យាទី៩* (5 chapters),
+*សៀវភៅកិច្ចការផ្ទះជីវវិទ្យាទី៩* (5 chapters), and the MoEYS e-learning chemistry outline (3 chapters).
 
-Open `index.html` and find the `QUESTIONS` array near the top of the `<script>` block. Each entry looks like:
+## Adding a chapter
 
-```js
-{cat:"KH", pts:3, q:"Question text?", o:["option ក","option ខ","option គ","option ឃ"], a:1},
-```
-
-`cat` is `KH` (Cambodia), `AS` (ASEAN) or `WD` (world); `pts` is 2, 3 or 5; `a` is the index (0–3) of the correct option.
-Keep the points summing to 100 if you change the set.
+1. Copy an existing file in `data/`, e.g. `data/math-02.js`, keep `id` equal to the file name.
+2. Write 20–30 questions, a mix of `lv: 1/2/3`; give every `lv: 3` question an `ex` explanation.
+3. In `data/subjects.js` add `bank: true` to that chapter. Commit and push.

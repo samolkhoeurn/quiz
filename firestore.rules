@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // >>> change this to the same e-mail as ADMIN_EMAIL in firebase-config.js <<<
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'samol.khoeurn@imc.com';
+    }
+    function signedIn() { return request.auth != null; }
+
+    // One document per student: /users/{uid}
+    //   { username, displayName, allowed: ["math-01", ...], createdAt, active }
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    // One document per finished quiz: /attempts/{autoId}
+    //   { uid, username, bankId, subject, startedAt, finishedAt, totalMs, score, total, answers: [...] }
+    match /attempts/{id} {
+      allow read: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.answers is list
+                    && request.resource.data.total is int
+                    && request.resource.data.score is int;
+      allow update, delete: if isAdmin();
+    }
+  }
+}

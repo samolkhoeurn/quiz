@@ -3,268 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ប្រឡងប្រជ្ញា ក្រុម A និង B</title>
-<meta name="description" content="ល្បែងសំណួរចំណេះដឹងទូទៅជាភាសាខ្មែរ សម្រាប់ក្រុមពីរប្រកួតគ្នា៖ សំណួរ ៣០ អំពីកម្ពុជា អាស៊ាន និងពិភពលោក ពិន្ទុសរុប ១០០។">
-<meta property="og:title" content="ប្រឡងប្រជ្ញា ក្រុម A និង B">
-<meta property="og:description" content="សំណួរចំណេះដឹងទូទៅ ៣០ · កម្ពុជា · អាស៊ាន · ពិភពលោក · ពិន្ទុសរុប ១០០">
-<meta property="og:type" content="website">
+<title>រៀនថ្នាក់ទី៩ · កម្រងសំណួរ</title>
+<meta name="description" content="កម្រងសំណួរអនុវត្តសម្រាប់សិស្សថ្នាក់ទី៩៖ គណិតវិទ្យា រូបវិទ្យា គីមីវិទ្យា ជីវវិទ្យា តាមកម្មវិធីសិក្សាកម្ពុជា">
 <meta name="theme-color" content="#1d2433">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d2433'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' font-family='serif' fill='%23e2b236'%3E%3F%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d2433'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' font-family='serif' fill='%23e2b236'%3E9%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Moul&display=swap">
-<style>
-/* Layout: one game board — sticky scoreboard on top, one question card in the middle, two team answer columns side by side (stack on phone). */
-:root{
-  --bg:#f6f3ec;          /* warm paper */
-  --panel:#fffdf8;
-  --ink:#1d2433;
-  --muted:#5f6878;
-  --line:#dcd6c8;
-  --gold:#b8860b;        /* accent, Angkor gold */
-  --teamA:#0f766e;       /* teal */
-  --teamA-soft:#d9f0ec;
-  --teamB:#9d174d;       /* plum */
-  --teamB-soft:#f8dde9;
-  --ok:#15803d; --ok-soft:#dcf5e3;
-  --bad:#b91c1c; --bad-soft:#fde2e2;
-  --display:"Moul","Kantumruy Pro",serif;
-  --body:"Kantumruy Pro","Noto Sans Khmer",system-ui,sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#15181f; --panel:#1e222b; --ink:#eef0f3; --muted:#a3abb8; --line:#333a47;
-    --gold:#e2b236; --teamA:#3ccbbb; --teamA-soft:#153a37; --teamB:#f06aa5; --teamB-soft:#44192c;
-    --ok:#4ade80; --ok-soft:#163a24; --bad:#f87171; --bad-soft:#44201f; color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#15181f; --panel:#1e222b; --ink:#eef0f3; --muted:#a3abb8; --line:#333a47;
-  --gold:#e2b236; --teamA:#3ccbbb; --teamA-soft:#153a37; --teamB:#f06aa5; --teamB-soft:#44192c;
-  --ok:#4ade80; --ok-soft:#163a24; --bad:#f87171; --bad-soft:#44201f; color-scheme:dark;
-}
-*{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.7;margin:0}
-button{font:inherit;cursor:pointer;color:inherit}
-button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-.wrap{max-width:1040px;margin:0 auto;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
-
-/* scoreboard */
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
-.board{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:grid;gap:10px}
-.head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-h1{font-family:var(--display);font-weight:400;font-size:clamp(1.15rem,3vw,1.6rem);margin:0;line-height:1.5;color:var(--gold);text-wrap:balance}
-.progress{color:var(--muted);font-size:.95rem;font-variant-numeric:tabular-nums}
-.scores{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch}
-.score{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:grid;gap:2px;min-width:0;border-top:4px solid var(--teamA)}
-.score.b{border-top-color:var(--teamB);text-align:right}
-.score input{font:inherit;font-weight:600;background:transparent;border:0;border-bottom:1px dashed var(--line);color:var(--ink);width:100%;min-width:0;padding:0}
-.score.b input{text-align:right}
-.score .num{font-size:2rem;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--teamA)}
-.score.b .num{color:var(--teamB)}
-.score small{color:var(--muted);font-size:.8rem}
-.vs{align-self:center;font-family:var(--display);color:var(--muted);font-size:.9rem}
-
-/* question card */
-.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;display:grid;gap:16px}
-.meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.chip{font-size:.85rem;padding:3px 12px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
-.chip.pts{border-color:var(--gold);color:var(--gold);font-weight:600}
-.chip.lv1{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
-.chip.lv2{background:#fff3cd33;border-color:var(--gold);color:var(--gold)}
-.chip.lv3{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
-.q{font-size:clamp(1.2rem,2.6vw,1.55rem);font-weight:600;line-height:1.75;margin:0;text-wrap:balance}
-
-.teams{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media (max-width:680px){.teams{grid-template-columns:1fr}.scores{grid-template-columns:1fr 1fr}.vs{display:none}}
-.team{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;min-width:0;align-content:start}
-.team h2{margin:0;font-size:1rem;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.team.a h2{color:var(--teamA)} .team.b h2{color:var(--teamB)}
-.team .state{font-size:.85rem;font-weight:500;color:var(--muted)}
-.opts{display:grid;gap:8px}
-.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:10px 12px;line-height:1.55;transition:border-color .15s,background .15s}
-.opt .k{flex:0 0 28px;height:28px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:.85rem;font-weight:600;color:var(--muted)}
-.opt:hover:not(:disabled){border-color:var(--muted)}
-.team.a .opt.sel{border-color:var(--teamA);background:var(--teamA-soft)} .team.a .opt.sel .k{background:var(--teamA);color:#fff;border-color:var(--teamA)}
-.team.b .opt.sel{border-color:var(--teamB);background:var(--teamB-soft)} .team.b .opt.sel .k{background:var(--teamB);color:#fff;border-color:var(--teamB)}
-.opt.right{border-color:var(--ok)!important;background:var(--ok-soft)!important}
-.opt.right .k{background:var(--ok)!important;border-color:var(--ok)!important;color:#fff!important}
-.opt.wrong{border-color:var(--bad)!important;background:var(--bad-soft)!important}
-.opt.wrong .k{background:var(--bad)!important;border-color:var(--bad)!important;color:#fff!important}
-.opt:disabled{cursor:default;opacity:.92}
-.result{font-weight:700;font-size:.95rem}
-.result.ok{color:var(--ok)} .result.bad{color:var(--bad)}
-
-.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center}
-.btn{border-radius:12px;padding:10px 20px;font-weight:600;border:2px solid var(--line);background:var(--panel)}
-.btn.primary{background:var(--gold);border-color:var(--gold);color:#1d1a10}
-.btn.primary:disabled{opacity:.45;cursor:not-allowed}
-.btn.ghost{border-color:transparent;color:var(--muted);padding:8px 12px}
-.btn.danger{color:var(--bad);border-color:var(--bad)}
-.hint{color:var(--muted);font-size:.9rem}
-.answerline{padding:12px 14px;border-radius:12px;background:var(--ok-soft);color:var(--ok);font-weight:600;border:1px solid var(--ok)}
-
-/* final */
-.final{text-align:center;display:grid;gap:14px;justify-items:center}
-.final .winner{font-family:var(--display);font-size:clamp(1.3rem,4vw,2rem);color:var(--gold);line-height:1.7}
-.final table{border-collapse:collapse;width:100%;max-width:520px;font-variant-numeric:tabular-nums}
-.final td,.final th{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
-.final td:not(:first-child),.final th:not(:first-child){text-align:right}
-.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--bad-soft);border:1px solid var(--bad);border-radius:12px;padding:10px 14px;color:var(--ink)}
-@media (prefers-reduced-motion:no-preference){.card{animation:in .25s ease}@keyframes in{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:none}}}
-</style>
-<style>html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="wrap">
-  <header class="board">
-    <div class="head">
-      <h1>ប្រឡងប្រជ្ញា ក្រុម A និង B</h1>
-      <div class="progress" id="progress"></div>
-    </div>
-    <div class="scores">
-      <div class="score a"><input id="nameA" value="ក្រុម A" aria-label="ឈ្មោះក្រុម A"><div class="num" id="scoreA">០</div><small>ពិន្ទុ / ១០០</small></div>
-      <div class="vs">ទល់</div>
-      <div class="score b"><input id="nameB" value="ក្រុម B" aria-label="ឈ្មោះក្រុម B"><div class="num" id="scoreB">០</div><small>ពិន្ទុ / ១០០</small></div>
-    </div>
+  <header class="top">
+    <a class="brand" href="./">
+      <span class="logo">៩</span>
+      <span><span class="brand-title">រៀនថ្នាក់ទី៩</span><br><span class="brand-sub">កម្រងសំណួរអនុវត្ត</span></span>
+    </a>
+    <nav class="topnav" id="topnav"></nav>
   </header>
 
-  <main id="main"></main>
+  <main id="app" aria-live="polite">
+    <div class="card center"><p class="muted">កំពុងផ្ទុក…</p></div>
+  </main>
 
-  <footer class="actions">
-    <span class="hint">សំណួរ ៣០ · កម្ពុជា ៩ · អាស៊ាន ៦ · ពិភពលោក ១៥ · ពិន្ទុសរុប ១០០</span>
-    <div id="resetZone"><button class="btn danger" id="resetBtn">ចាប់ផ្តើមឡើងវិញ</button></div>
+  <footer class="foot">
+    <span>ផ្អែកលើសៀវភៅសិក្សាគោលថ្នាក់ទី៩ ក្រសួងអប់រំ យុវជន និងកីឡា</span>
+    <a href="general.html">ល្បែងចំណេះដឹងទូទៅ ក្រុម A និង B →</a>
   </footer>
 </div>
-
-<script>
-// cat: KH = Cambodia, AS = ASEAN, WD = World.  pts: 2 easy, 3 medium, 5 hard.  a = index of correct option.
-const QUESTIONS = [
- {cat:"KH",pts:2,q:"រាជធានីនៃព្រះរាជាណាចក្រកម្ពុជាគឺទីក្រុងណា?",o:["សៀមរាប","ភ្នំពេញ","បាត់ដំបង","កំពង់ចាម"],a:1},
- {cat:"WD",pts:2,q:"ទ្វីបណាធំជាងគេលើពិភពលោក?",o:["អាហ្វ្រិក","អឺរ៉ុប","អាស៊ី","អាមេរិកខាងជើង"],a:2},
- {cat:"AS",pts:2,q:"រាជធានីនៃប្រទេសថៃគឺទីក្រុងណា?",o:["ឈៀងម៉ៃ","ភូកេត","បាងកក","ប៉ាតាយ៉ា"],a:2},
- {cat:"KH",pts:3,q:"ប្រាសាទអង្គរវត្តត្រូវបានកសាងឡើងក្នុងរជ្ជកាលព្រះបាទណា?",o:["ជ័យវរ្ម័នទី៧","សូរ្យវរ្ម័នទី២","យសោវរ្ម័នទី១","ឥន្ទ្រវរ្ម័នទី១"],a:1},
- {cat:"WD",pts:3,q:"ទន្លេណាវែងជាងគេលើពិភពលោក?",o:["អាម៉ាហ្សូន","យ៉ង់សេ","មីស៊ីស៊ីពី","នីល"],a:3},
- {cat:"WD",pts:2,q:"ភពណាធំជាងគេក្នុងប្រព័ន្ធព្រះអាទិត្យ?",o:["ភពសៅរ៍","ភពព្រហស្បតិ៍","ភពផែនដី","ភពអង្គារ"],a:1},
- {cat:"AS",pts:3,q:"សមាគមប្រជាជាតិអាស៊ីអាគ្នេយ៍ (អាស៊ាន) ត្រូវបានបង្កើតឡើងនៅឆ្នាំណា?",o:["១៩៤៥","១៩៦៧","១៩៧៥","១៩៩៩"],a:1},
- {cat:"KH",pts:2,q:"រូបិយប័ណ្ណផ្លូវការរបស់ប្រទេសកម្ពុជាមានឈ្មោះថាអ្វី?",o:["បាត","គីប","រៀល","ដុង"],a:2},
- {cat:"WD",pts:5,q:"ប្រទេសណាមានតំបន់ម៉ោង (time zones) ច្រើនជាងគេលើពិភពលោក?",o:["រុស្ស៊ី","សហរដ្ឋអាមេរិក","បារាំង","ចិន"],a:2},
- {cat:"WD",pts:2,q:"មហាសមុទ្រណាធំជាងគេលើពិភពលោក?",o:["អាត្លង់ទិក","ឥណ្ឌា","អាក់ទិក","ប៉ាស៊ីហ្វិក"],a:3},
- {cat:"KH",pts:3,q:"កម្ពុជាទទួលបានឯករាជ្យពេញលេញពីបារាំង នៅថ្ងៃទី៩ ខែវិច្ឆិកា ឆ្នាំណា?",o:["១៩៤៥","១៩៤៩","១៩៥៣","១៩៧០"],a:2},
- {cat:"AS",pts:5,q:"កោះណាធំជាងគេនៅតំបន់អាស៊ីអាគ្នេយ៍?",o:["ស៊ូម៉ាត្រា","បូណេអូ","ជ្វា","លូសុន"],a:1},
- {cat:"WD",pts:3,q:"រាជធានីនៃប្រទេសកាណាដាគឺទីក្រុងណា?",o:["តូរ៉ុនតូ","វ៉ាន់គូវើ","ម៉ុងរេអាល់","អូតាវ៉ា"],a:3},
- {cat:"WD",pts:2,q:"ប្រទេសណាត្រូវបានគេហៅថា «ទឹកដីនៃព្រះអាទិត្យរះ»?",o:["ចិន","កូរ៉េខាងត្បូង","ជប៉ុន","វៀតណាម"],a:2},
- {cat:"KH",pts:5,q:"ប្រាសាទព្រះវិហារត្រូវបានចុះក្នុងបញ្ជីបេតិកភណ្ឌពិភពលោករបស់អង្គការយូណេស្កូនៅឆ្នាំណា?",o:["១៩៩២","២០០៣","២០០៨","២០១៧"],a:2},
- {cat:"WD",pts:3,q:"អង្គការសហប្រជាជាតិត្រូវបានបង្កើតឡើងនៅឆ្នាំណា?",o:["១៩១៩","១៩៣៩","១៩៤៥","១៩៥០"],a:2},
- {cat:"AS",pts:2,q:"ប្រទេសណាក្នុងអាស៊ានមានផ្ទៃដីតូចជាងគេ?",o:["ប្រ៊ុយណេ","សិង្ហបុរី","កម្ពុជា","ឡាវ"],a:1},
- {cat:"WD",pts:5,q:"ប្រទេសណាមានចំនួនកោះច្រើនជាងគេលើពិភពលោក?",o:["ឥណ្ឌូនេស៊ី","ហ្វីលីពីន","ស៊ុយអែត","ជប៉ុន"],a:2},
- {cat:"KH",pts:3,q:"ទីក្រុងអង្គរធំ និងប្រាសាទបាយ័ន ត្រូវបានកសាងឡើងដោយព្រះបាទណា?",o:["ជ័យវរ្ម័នទី៧","សូរ្យវរ្ម័នទី១","ជ័យវរ្ម័នទី២","ឧទ័យទិត្យវរ្ម័នទី២"],a:0},
- {cat:"WD",pts:3,q:"អ្នកណាជាមនុស្សដំបូងគេដែលបានដើរលើភពព្រះចន្ទ?",o:["យូរី ហ្គាហ្គារីន","ប៊ាស អលឌ្រីន","នីល អាមស្ត្រុង","ចន ហ្គ្លេន"],a:2},
- {cat:"AS",pts:3,q:"ទីស្នាក់ការកណ្តាលរបស់អាស៊ានស្ថិតនៅទីក្រុងណា?",o:["បាងកក","កូឡាឡាំពួរ","ហ្សាកាតា","សិង្ហបុរី"],a:2},
- {cat:"WD",pts:5,q:"ភាសាណាមានអ្នកនិយាយជាភាសាកំណើតច្រើនជាងគេលើពិភពលោក?",o:["អង់គ្លេស","ហិណ្ឌី","អេស្ប៉ាញ","ចិនកុកងឺ"],a:3},
- {cat:"KH",pts:5,q:"ភ្នំណាខ្ពស់ជាងគេនៅប្រទេសកម្ពុជា?",o:["ភ្នំបូកគោ","ភ្នំឱរ៉ាល់","ភ្នំគូលែន","ភ្នំសំកុស"],a:1},
- {cat:"WD",pts:2,q:"ទីស្នាក់ការកណ្តាលអង្គការសហប្រជាជាតិស្ថិតនៅទីក្រុងណា?",o:["ហ្សឺណែវ","ញូវយ៉ក","ប៉ារីស","ឡុងដ៍"],a:1},
- {cat:"WD",pts:3,q:"ប្រទេសណាមានចំនួនប្រជាជនច្រើនជាងគេលើពិភពលោកនាពេលបច្ចុប្បន្ន?",o:["ចិន","ឥណ្ឌា","សហរដ្ឋអាមេរិក","ឥណ្ឌូនេស៊ី"],a:1},
- {cat:"AS",pts:5,q:"ប្រទេសណាក្នុងអាស៊ីអាគ្នេយ៍ដែលមិនធ្លាប់ស្ថិតក្រោមអាណានិគមអឺរ៉ុប?",o:["មីយ៉ាន់ម៉ា","វៀតណាម","ថៃ","ហ្វីលីពីន"],a:2},
- {cat:"WD",pts:5,q:"រាជធានីនៃប្រទេសកាហ្សាក់ស្ថានគឺទីក្រុងណា?",o:["តាស្កិន","អាល់ម៉ាទី","អាស្តាណា","ប៊ីស្កេក"],a:2},
- {cat:"KH",pts:2,q:"ប្រាសាទអង្គរវត្តស្ថិតនៅក្នុងខេត្តណា?",o:["បាត់ដំបង","សៀមរាប","កំពង់ធំ","ព្រះវិហារ"],a:1},
- {cat:"WD",pts:5,q:"កំពូលភ្នំអេវើរេស្ត មានកម្ពស់ប្រហែលប៉ុន្មានម៉ែត្រពីលើនីវ៉ូទឹកសមុទ្រ?",o:["៧.៩៥០ ម","៨.៨៤៩ ម","៩.៣០០ ម","៨.១២៥ ម"],a:1},
- {cat:"KH",pts:5,q:"ខេត្តណាមានផ្ទៃដីធំជាងគេនៅប្រទេសកម្ពុជា?",o:["រតនគិរី","ក្រចេះ","មណ្ឌលគិរី","កំពង់ធំ"],a:2},
-];
-const CAT = {KH:"កម្ពុជា", AS:"អាស៊ាន", WD:"ពិភពលោក"};
-const LEVEL = {2:["ងាយ","lv1"], 3:["មធ្យម","lv2"], 5:["ពិបាក","lv3"]};
-const LETTERS = ["ក","ខ","គ","ឃ"];
-const KEY = "khmer-team-quiz-v1";
-const km = n => String(n).replace(/\d/g, d => "០១២៣៤៥៦៧៨៩"[d]);
-
-const fresh = () => ({i:0, picks:[], revealed:false, scoreA:0, scoreB:0, nameA:"ក្រុម A", nameB:"ក្រុម B", log:[]});
-let S = fresh();
-try { const raw = localStorage.getItem(KEY); if (raw) { const p = JSON.parse(raw); if (p && typeof p.i === "number") S = Object.assign(fresh(), p); } } catch (e) {}
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-
-const $ = id => document.getElementById(id);
-const main = $("main");
-let confirming = false;
-
-function pick(team, idx){ if (S.revealed) return; S.picks[S.i] = S.picks[S.i] || {}; S.picks[S.i][team] = idx; save(); render(); }
-function reveal(){
-  const q = QUESTIONS[S.i], p = S.picks[S.i] || {};
-  const gA = p.A === q.a, gB = p.B === q.a;
-  if (gA) S.scoreA += q.pts; if (gB) S.scoreB += q.pts;
-  S.log[S.i] = {A:gA, B:gB}; S.revealed = true; save(); render();
-}
-function next(){ S.i += 1; S.revealed = false; save(); render(); }
-function reset(){ S = fresh(); save(); confirming = false; render(); }
-
-function teamPanel(team, q, p, done){
-  const chosen = p[team];
-  const name = team === "A" ? S.nameA : S.nameB;
-  let state = chosen == null ? "កំពុងរង់ចាំចម្លើយ…" : (done ? "" : "បានជ្រើសរើស ✓");
-  let result = "";
-  if (done) result = chosen == null ? `<div class="result bad">មិនបានឆ្លើយ · ០ ពិន្ទុ</div>`
-    : chosen === q.a ? `<div class="result ok">ត្រឹមត្រូវ! +${km(q.pts)} ពិន្ទុ</div>`
-    : `<div class="result bad">ខុស · ០ ពិន្ទុ</div>`;
-  const opts = q.o.map((t,i) => {
-    let cls = "opt"; if (!done && chosen === i) cls += " sel";
-    if (done) { if (i === q.a) cls += " right"; else if (chosen === i) cls += " wrong"; }
-    return `<button class="${cls}" ${done ? "disabled" : ""} data-team="${team}" data-i="${i}" aria-pressed="${chosen===i}"><span class="k">${LETTERS[i]}</span><span>${t}</span></button>`;
-  }).join("");
-  return `<section class="team ${team.toLowerCase()}"><h2><span>${name}</span><span class="state">${state}</span></h2><div class="opts">${opts}</div>${result}</section>`;
-}
-
-function render(){
-  $("scoreA").textContent = km(S.scoreA); $("scoreB").textContent = km(S.scoreB);
-  if (document.activeElement !== $("nameA")) $("nameA").value = S.nameA;
-  if (document.activeElement !== $("nameB")) $("nameB").value = S.nameB;
-  $("resetZone").innerHTML = confirming
-    ? `<div class="confirm"><span>លុបពិន្ទុទាំងអស់ ហើយចាប់ផ្តើមពីសំណួរទី១?</span><button class="btn danger" id="resetYes">បាទ/ចាស ចាប់ផ្តើមឡើងវិញ</button><button class="btn ghost" id="resetNo">ទេ</button></div>`
-    : `<button class="btn danger" id="resetBtn">ចាប់ផ្តើមឡើងវិញ</button>`;
-
-  if (S.i >= QUESTIONS.length) {
-    $("progress").textContent = "បញ្ចប់ការប្រកួត";
-    const a = S.scoreA, b = S.scoreB;
-    const winner = a === b ? "ស្មើគ្នា!" : (a > b ? `${S.nameA} ឈ្នះ!` : `${S.nameB} ឈ្នះ!`);
-    const rows = Object.keys(CAT).map(c => {
-      let ta = 0, tb = 0, tot = 0;
-      QUESTIONS.forEach((q,i) => { if (q.cat !== c) return; tot += q.pts; const l = S.log[i] || {}; if (l.A) ta += q.pts; if (l.B) tb += q.pts; });
-      return `<tr><td>${CAT[c]}</td><td>${km(ta)}</td><td>${km(tb)}</td><td>${km(tot)}</td></tr>`;
-    }).join("");
-    main.innerHTML = `<div class="card final">
-      <div class="winner">${winner}</div>
-      <div style="font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums"><span style="color:var(--teamA)">${S.nameA} ${km(a)}</span> &nbsp;·&nbsp; <span style="color:var(--teamB)">${S.nameB} ${km(b)}</span></div>
-      <table><thead><tr><th>ប្រភេទ</th><th>${S.nameA}</th><th>${S.nameB}</th><th>ពិន្ទុអតិបរមា</th></tr></thead><tbody>${rows}</tbody></table>
-      <button class="btn primary" id="playAgain">លេងម្តងទៀត</button></div>`;
-    return;
-  }
-
-  const q = QUESTIONS[S.i], p = S.picks[S.i] || {}, done = S.revealed;
-  const both = p.A != null && p.B != null;
-  $("progress").textContent = `សំណួរទី ${km(S.i+1)} / ${km(QUESTIONS.length)}`;
-  const [lvName, lvCls] = LEVEL[q.pts];
-  main.innerHTML = `<article class="card">
-    <div class="meta"><span class="chip">${CAT[q.cat]}</span><span class="chip ${lvCls}">${lvName}</span><span class="chip pts">${km(q.pts)} ពិន្ទុ</span></div>
-    <h2 class="q">${km(S.i+1)}. ${q.q}</h2>
-    <div class="teams">${teamPanel("A",q,p,done)}${teamPanel("B",q,p,done)}</div>
-    ${done ? `<div class="answerline">ចម្លើយត្រឹមត្រូវ៖ ${LETTERS[q.a]}. ${q.o[q.a]}</div>` : ""}
-    <div class="actions">
-      <span class="hint">${done ? "" : (both ? "ក្រុមទាំងពីរបានឆ្លើយរួចហើយ" : "ក្រុមនីមួយៗជ្រើសរើសចម្លើយមួយ រួចចុច «បង្ហាញចម្លើយ»")}</span>
-      ${done ? `<button class="btn primary" id="nextBtn">${S.i+1 === QUESTIONS.length ? "មើលលទ្ធផល" : "សំណួរបន្ទាប់ →"}</button>`
-             : `<button class="btn primary" id="revealBtn" ${both ? "" : "disabled"}>បង្ហាញចម្លើយ</button>`}
-    </div></article>`;
-}
-
-document.addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return;
-  if (b.dataset.team) pick(b.dataset.team, +b.dataset.i);
-  else if (b.id === "revealBtn") reveal();
-  else if (b.id === "nextBtn") next();
-  else if (b.id === "playAgain" || b.id === "resetBtn") { confirming = true; render(); }
-  else if (b.id === "resetYes") reset();
-  else if (b.id === "resetNo") { confirming = false; render(); }
-});
-$("nameA").addEventListener("input", e => { S.nameA = e.target.value || "ក្រុម A"; save(); render(); });
-$("nameB").addEventListener("input", e => { S.nameB = e.target.value || "ក្រុម B"; save(); render(); });
-render();
-</script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
