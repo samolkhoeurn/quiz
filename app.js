@@ -4,8 +4,8 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=10";
-import { SUBJECTS, LEVELS } from "./data/subjects.js";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=11";
+import { SUBJECTS, LEVELS } from "./data/subjects.js?v=11";
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
@@ -73,7 +73,7 @@ const chapterOf = (bankId) => { for (const s of SUBJECTS) { const c = s.chapters
 const ALL_BANKS = SUBJECTS.flatMap((s) => s.chapters.filter((c) => c.bank).map((c) => c.id));
 const studentEmail = (u) => `${u.trim().toLowerCase()}@${STUDENT_EMAIL_DOMAIN}`;
 const bankCache = {};
-async function loadBank(id) { if (!bankCache[id]) bankCache[id] = (await import(`./data/${id}.js`)).default; return bankCache[id]; }
+async function loadBank(id) { if (!bankCache[id]) bankCache[id] = (await import(`./data/${id}.js?v=11`)).default; return bankCache[id]; }
 
 /* ---------- firebase ---------- */
 const configured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE");
