@@ -157,3 +157,13 @@ body.kids .explain{font-size:1.05rem}
 .fireworks{position:fixed;inset:0;width:100%;height:100%;pointer-events:auto;z-index:50;transition:opacity .6s}
 .fireworks.out{opacity:0}
 @media (prefers-reduced-motion:reduce){.cheer{animation:none}}
+
+/* question manager */
+table.qm td{vertical-align:top}
+.qm-q{font-weight:600;line-height:1.6}
+.qm-o{margin:6px 0 0;padding-left:0;list-style:none;display:grid;gap:2px;font-size:.95rem}
+.qm-ex{margin-top:6px;padding:6px 10px;border-left:3px solid var(--gold);background:var(--soft);border-radius:0 8px 8px 0;font-size:.9rem}
+.qm-editor{display:grid;gap:10px;padding:10px;border:1px solid var(--gold);border-radius:12px;background:var(--panel)}
+.qm-editor textarea,.qm-editor input[type=text],.qm-editor input:not([type]){border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);width:100%;font:inherit;color:inherit}
+.qm-editor .field.row input:not([type=radio]){flex:1}
+.qm-preview{flex:1;min-width:0;padding:8px 12px;border:1px dashed var(--line);border-radius:10px}

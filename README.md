@@ -6,7 +6,7 @@ Practice quizzes for a Cambodian grade 9 student: the four MoEYS subjects in Khm
 |---|---|
 | `index.html`, `app.js`, `styles.css` | The learning app: student login, chapter picker, timed quizzes (answers shown only after submit), reports, admin panel |
 | `firebase-config.js` | Your Firebase project settings + the admin e-mail (see `SETUP.md`) |
-| `firestore.rules` | Security rules to paste into Firebase (admin = one e-mail; students see only their own data) |
+| `firestore.rules` | Security rules to paste into Firebase (admin = one e-mail; students see only their own data; `banks` = chapters edited online) |
 | `data/subjects.js` | Subjects and their official chapter/lesson lists; `bank: true` marks chapters that have questions; `lang: "en"` gives English chapter labels, `kids: true` gives larger text |
 | `data/<subject>-<nn>.js` | One question bank per chapter: `{lv, q, o[4], a, ex}` — level 1/2/3, question, options, correct index, explanation. English banks (`enmath-*`) write maths in LaTeX between `$…$`, rendered by KaTeX |
 | `general.html` | The original two-team general-knowledge quiz (no login) |
@@ -21,6 +21,12 @@ The student interface is Khmer by default. In the admin panel each student has a
 ## Architecture
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) (diagrams render on GitHub) or the full page at [docs/architecture.html](https://samolkhoeurn.github.io/quiz/docs/architecture.html).
+
+## Editing questions online
+
+The admin tab កម្រងសំណួរ is a question manager: browse every chapter with the maths rendered, search, filter by level, see
+each question's hit rate from real attempts, edit with live preview, delete, add. Saved chapters live in Firestore
+(`banks/{id}`) and override the file; «នាំចេញ .js» exports a chapter back to file format so the repository can be updated.
 
 ## Adding a chapter
 

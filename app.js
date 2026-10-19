@@ -4,8 +4,8 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=13";
-import { SUBJECTS, LEVELS } from "./data/subjects.js?v=13";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=15";
+import { SUBJECTS, LEVELS } from "./data/subjects.js?v=15";
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
@@ -74,7 +74,16 @@ const chapterOf = (bankId) => { for (const s of SUBJECTS) { const c = s.chapters
 const ALL_BANKS = SUBJECTS.flatMap((s) => s.chapters.filter((c) => c.bank).map((c) => c.id));
 const studentEmail = (u) => `${u.trim().toLowerCase()}@${STUDENT_EMAIL_DOMAIN}`;
 const bankCache = {};
-async function loadBank(id) { if (!bankCache[id]) bankCache[id] = (await import(`./data/${id}.js?v=13`)).default; return bankCache[id]; }
+const fileBankCache = {};
+async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=15`)).default; return fileBankCache[id]; }
+// A chapter edited online lives in Firestore (banks/{id}) and overrides the file version; otherwise the file is used.
+async function loadBank(id) {
+  if (bankCache[id]) return bankCache[id];
+  let bank = null;
+  if (db) { try { const snap = await getDoc(doc(db, "banks", id)); if (snap.exists()) bank = { ...snap.data(), fromDb: true }; } catch (e) { console.warn("banks read failed", e.code); } }
+  if (!bank) bank = { ...(await loadFileBank(id)), fromDb: false };
+  bankCache[id] = bank; return bank;
+}
 
 /* ---------- firebase ---------- */
 const configured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE");
@@ -589,15 +598,151 @@ async function renderAdminReports(students) {
   rep.querySelectorAll("[data-id]").forEach((r) => r.addEventListener("click", () => renderResult(attempts.find((a) => a.id === r.dataset.id), null, () => renderAdmin("reports"), `អ្នកគ្រប់គ្រង · ${S.user.email}`)));
 }
 
+/* ---------- question manager (admin) ---------- */
+const QM = { subj: null, bank: null, data: null, dirty: false, edit: null, filter: "", lv: 0, stats: null, msg: null };
 async function renderAdminBanks() {
   const body = $("tabBody");
-  const items = [];
-  for (const s of SUBJECTS) for (const c of s.chapters) {
-    let n = "", lv = "";
-    if (c.bank) { const b = await loadBank(c.id); n = km(b.questions.length); lv = [1, 2, 3].map((l) => km(b.questions.filter((q) => q.lv === l).length)).join(" / "); }
-    items.push(`<tr><td><span style="color:${s.color};font-weight:600">${esc(sName(s))}</span></td><td>${unitOf(s, c)}៖ ${esc(c.title)}${c.sub ? `<br><span class="muted small">${esc(c.sub)}</span>` : ""}</td><td>${c.bank ? `<span class="ok-text">មាន</span>` : `<span class="muted">មិនទាន់</span>`}</td><td class="num">${n}</td><td class="num">${lv}</td></tr>`);
-  }
-  body.innerHTML = `<div style="margin-top:14px;display:grid;gap:10px">
-    <p class="muted small">សំណួររក្សាទុកក្នុងឯកសារ <code>data/&lt;id&gt;.js</code> ក្នុង repository ។ ដើម្បីបន្ថែមជំពូក៖ បន្ថែមឯកសារ រួចដាក់ <code>bank: true</code> ក្នុង <code>data/subjects.js</code> ហើយ push ។</p>
-    <div class="tablewrap"><table><thead><tr><th>មុខវិជ្ជា</th><th>មេរៀន/ជំពូក</th><th>សំណួរ</th><th class="num">ចំនួន</th><th class="num">ងាយ / មធ្យម / ពិបាក</th></tr></thead><tbody>${items.join("")}</tbody></table></div></div>`;
+  if (!QM.subj) QM.subj = SUBJECTS[0].id;
+  const subj = subjectOf(QM.subj);
+  const chapters = subj.chapters.filter((c) => c.bank);
+  if (!QM.bank || !chapters.some((c) => c.id === QM.bank)) { QM.bank = chapters[0]?.id || null; QM.data = null; QM.dirty = false; QM.edit = null; QM.stats = null; }
+  body.innerHTML = `<div style="margin-top:14px;display:grid;gap:14px">
+    <div class="notice row between" id="qmDbStatus"><span>កំពុងពិនិត្យមូលដ្ឋានទិន្នន័យ…</span></div>
+    <div class="row" style="gap:14px;align-items:flex-end">
+      <div class="field"><label for="qmSubj">មុខវិជ្ជា</label><select id="qmSubj">${SUBJECTS.map((x) => `<option value="${x.id}" ${x.id === QM.subj ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></div>
+      <div class="field" style="min-width:260px"><label for="qmBank">មេរៀន/ជំពូក</label><select id="qmBank">${chapters.map((c) => `<option value="${c.id}" ${c.id === QM.bank ? "selected" : ""}>${unitOf(subj, c)}៖ ${esc(c.title)}</option>`).join("")}</select></div>
+      <div class="field" style="flex:1;min-width:200px"><label for="qmFind">ស្វែងរក</label><input id="qmFind" value="${esc(QM.filter)}" placeholder="ពាក្យក្នុងសំណួរ ចម្លើយ ឬការពន្យល់"></div>
+      <div class="field"><label for="qmLv">កម្រិត</label><select id="qmLv"><option value="0">ទាំងអស់</option>${[1, 2, 3].map((l) => `<option value="${l}" ${QM.lv === l ? "selected" : ""}>${LEVELS[l]}</option>`).join("")}</select></div>
+    </div>
+    <div id="qmBody"><p class="muted">កំពុងទាញ…</p></div>
+  </div>`;
+  $("qmSubj").addEventListener("change", (e) => { QM.subj = e.target.value; QM.bank = null; QM.filter = ""; renderAdminBanks(); });
+  $("qmBank").addEventListener("change", (e) => { if (QM.dirty && !confirmDiscard()) { e.target.value = QM.bank; return; } QM.bank = e.target.value; QM.data = null; QM.dirty = false; QM.edit = null; QM.stats = null; renderAdminBanks(); });
+  $("qmFind").addEventListener("input", (e) => { QM.filter = e.target.value; renderQmList(); });
+  $("qmLv").addEventListener("change", (e) => { QM.lv = +e.target.value; renderQmList(); });
+  renderDbStatus();
+  if (!QM.bank) { $("qmBody").innerHTML = `<p class="muted">មុខវិជ្ជានេះមិនទាន់មានសំណួរទេ។</p>`; return; }
+  if (!QM.data) { const b = await loadBank(QM.bank); QM.data = JSON.parse(JSON.stringify({ id: b.id, subject: b.subject, title: b.title, quizSize: b.quizSize || null, questions: b.questions })); QM.fromDb = !!b.fromDb; }
+  renderQmList();
+  if (!QM.stats) loadQmStats();
+}
+// How many chapters live in Firestore; one-click import of the rest from the files.
+async function renderDbStatus() {
+  const el = $("qmDbStatus"); if (!el) return;
+  let inDb = [];
+  try { inDb = (await getDocs(collection(db, "banks"))).docs.map((d) => d.id); } catch (e) { el.innerHTML = `<span class="bad-text">អានមូលដ្ឋានទិន្នន័យមិនបាន (${esc(e.code || e)}) — សូមពិនិត្យ firestore.rules ផ្នែក banks។</span>`; return; }
+  QM.inDb = new Set(inDb);
+  const missing = ALL_BANKS.filter((id) => !QM.inDb.has(id));
+  const total = ALL_BANKS.length;
+  el.innerHTML = `<span><strong>មូលដ្ឋានទិន្នន័យ Firestore៖</strong> ${km(inDb.length)} / ${km(total)} ជំពូកនៅក្នុងមូលដ្ឋានទិន្នន័យ${missing.length ? ` · ${km(missing.length)} ជំពូកនៅតែអានពីឯកសារ` : " · ទាំងអស់អានពីមូលដ្ឋានទិន្នន័យ"}</span>
+    ${missing.length ? `<button class="btn sm primary" id="qmImportAll">នាំចូល ${km(missing.length)} ជំពូកទៅមូលដ្ឋានទិន្នន័យ</button>` : `<span class="ok-text small">✓ សំណួរទាំងអស់ស្ថិតក្នុង Firestore</span>`}`;
+  $("qmImportAll")?.addEventListener("click", async (e) => {
+    e.target.disabled = true; let n = 0;
+    for (const id of missing) {
+      try { const b = await loadFileBank(id); const payload = { id: b.id, subject: b.subject, title: b.title, questions: b.questions, updatedAt: Date.now(), updatedBy: S.user.email, source: "file" }; if (b.quizSize) payload.quizSize = b.quizSize;
+        await setDoc(doc(db, "banks", id), payload); delete bankCache[id]; n++; e.target.textContent = `កំពុងនាំចូល… ${km(n)} / ${km(missing.length)}`; }
+      catch (err) { el.innerHTML = `<span class="bad-text">បរាជ័យនៅ ${id}: ${esc(err.code || err)}</span>`; return; }
+    }
+    QM.data = null; renderAdminBanks();
+  });
+}
+function confirmDiscard() { QM.msg = { bad: true, text: "មានការកែប្រែមិនទាន់រក្សាទុក។ សូមចុច «រក្សាទុកទៅមូលដ្ឋានទិន្នន័យ» ឬ «បោះបង់ការកែប្រែ» ជាមុនសិន។" }; renderQmList(); return false; }
+async function loadQmStats() {
+  try {
+    const qs = await getDocs(query(collection(db, "attempts"), where("bankId", "==", QM.bank)));
+    const st = {}; qs.docs.forEach((d) => d.data().answers?.forEach((a) => { const k = String(a.i); st[k] = st[k] || { n: 0, c: 0, ms: 0 }; st[k].n++; if (a.correct) st[k].c++; st[k].ms += a.ms || 0; }));
+    QM.stats = st;
+  } catch (e) { QM.stats = {}; }
+  renderQmList();
+}
+const qmMatches = (q) => { const f = QM.filter.trim().toLowerCase(); return (!QM.lv || q.lv === QM.lv) && (!f || [q.q, ...q.o, q.ex || ""].join(" ").toLowerCase().includes(f)); };
+function renderQmList() {
+  const el = $("qmBody"); if (!el || !QM.data) return;
+  const D = QM.data, { s, c } = chapterOf(D.id);
+  const lvCount = [1, 2, 3].map((l) => D.questions.filter((q) => q.lv === l).length);
+  const rows = D.questions.map((q, i) => ({ q, i })).filter(({ q }) => qmMatches(q));
+  const stat = (i) => { const x = QM.stats?.[String(i)]; if (!x) return `<span class="muted small">—</span>`; const pc = Math.round((100 * x.c) / x.n); return `<span class="${pc >= 60 ? "ok-text" : pc >= 35 ? "" : "bad-text"}">${km(pc)}%</span><br><span class="muted small">${km(x.n)} ដង · ${secs(x.ms / x.n)}</span>`; };
+  el.innerHTML = `
+    <div class="row between">
+      <div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(s.name)}</span><span class="chip">${unitOf(s, c)}</span><span class="chip">${km(D.questions.length)} សំណួរ · ${km(lvCount[0])} / ${km(lvCount[1])} / ${km(lvCount[2])}</span>
+        <span class="chip ${QM.fromDb ? "lv2" : ""}">${QM.fromDb ? "កំណែកែប្រែលើអ៊ីនធឺណិត" : "កំណែពីឯកសារ"}</span>${QM.dirty ? `<span class="chip lv3">មិនទាន់រក្សាទុក</span>` : ""}</div>
+      <div class="row">
+        <button class="btn sm" id="qmAdd">+ បន្ថែមសំណួរ</button>
+        <button class="btn sm" id="qmExport" title="ទាញយកជាឯកសារ data/${D.id}.js">នាំចេញ .js</button>
+        ${QM.fromDb ? `<button class="btn sm danger" id="qmReset">ត្រឡប់ទៅកំណែឯកសារ</button>` : ""}
+        <button class="btn sm ghost" id="qmDiscard" ${QM.dirty ? "" : "disabled"}>បោះបង់ការកែប្រែ</button>
+        <button class="btn sm primary" id="qmSave" ${QM.dirty ? "" : "disabled"}>រក្សាទុកទៅមូលដ្ឋានទិន្នន័យ</button>
+      </div>
+    </div>
+    ${QM.msg ? `<div class="notice ${QM.msg.bad ? "bad" : "ok"}">${esc(QM.msg.text)}</div>` : ""}
+    <p class="muted small">ចុច «កែ» ដើម្បីកែសំណួរ។ ការកែប្រែមានប្រសិទ្ធភាពសម្រាប់សិស្សភ្លាមៗ បន្ទាប់ពី «រក្សាទុកទៅមូលដ្ឋានទិន្នន័យ»។ ជួរឈរ «លទ្ធផល» បង្ហាញភាគរយដែលសិស្សឆ្លើយត្រូវ។</p>
+    <div class="tablewrap"><table class="qm"><thead><tr><th>#</th><th>កម្រិត</th><th style="min-width:320px">សំណួរ និងចម្លើយ</th><th>លទ្ធផល</th><th></th></tr></thead><tbody>
+      ${rows.map(({ q, i }) => QM.edit === i ? qmEditorRow(q, i) : `<tr>
+        <td class="num">${km(i + 1)}</td><td><span class="chip lv${q.lv}">${LEVELS[q.lv]}</span></td>
+        <td><div class="qm-q">${mf(q.q)}</div><ol class="qm-o">${q.o.map((o, k) => `<li class="${k === q.a ? "ok-text" : ""}">${LETTERS[k]}. ${mf(o)}${k === q.a ? " ✓" : ""}</li>`).join("")}</ol>${q.ex ? `<div class="qm-ex">${mf(q.ex)}</div>` : ""}</td>
+        <td>${stat(i)}</td>
+        <td class="num"><button class="btn sm" data-edit="${i}">កែ</button> <button class="btn sm danger" data-del="${i}">លុប</button></td></tr>`).join("")}
+      ${rows.length ? "" : `<tr><td colspan="5" class="muted">គ្មានសំណួរត្រូវនឹងការស្វែងរក។</td></tr>`}
+    </tbody></table></div>`;
+  QM.msg = null;
+  el.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => { QM.edit = +b.dataset.edit; renderQmList(); }));
+  el.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => { const i = +b.dataset.del; if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "លុបពិតមែន?"; return; } D.questions.splice(i, 1); QM.dirty = true; QM.edit = null; renderQmList(); }));
+  $("qmAdd").addEventListener("click", () => { D.questions.push({ lv: 2, q: "", o: ["", "", "", ""], a: 0, ex: "" }); QM.edit = D.questions.length - 1; QM.filter = ""; QM.lv = 0; renderQmList(); $(`qmEdit${QM.edit}`)?.scrollIntoView({ block: "center" }); });
+  $("qmSave").addEventListener("click", saveQmBank);
+  $("qmDiscard").addEventListener("click", () => { QM.data = null; QM.dirty = false; QM.edit = null; renderAdminBanks(); });
+  $("qmExport").addEventListener("click", exportQmBank);
+  $("qmReset")?.addEventListener("click", async (e) => { if (!e.target.dataset.sure) { e.target.dataset.sure = "1"; e.target.textContent = "លុបកំណែអ៊ីនធឺណិត ហើយប្រើឯកសារវិញ?"; return; } await deleteDoc(doc(db, "banks", D.id)); delete bankCache[D.id]; QM.data = null; QM.dirty = false; QM.msg = { text: "បានត្រឡប់ទៅកំណែឯកសារ។" }; renderAdminBanks(); });
+  wireQmEditor();
+}
+function qmEditorRow(q, i) {
+  return `<tr id="qmEdit${i}"><td class="num">${km(i + 1)}</td><td colspan="4"><div class="qm-editor">
+    <div class="row"><label class="row small">កម្រិត <select id="qeLv">${[1, 2, 3].map((l) => `<option value="${l}" ${q.lv === l ? "selected" : ""}>${LEVELS[l]}</option>`).join("")}</select></label><span class="muted small">គណិតសរសេរក្នុង $…$ (ឧ. $\\frac{2}{3}$, $\\sqrt{60}$) ឬប្រើ √ និង / សម្រាប់ធនាគារខ្មែរ</span></div>
+    <div class="field"><label>សំណួរ</label><textarea id="qeQ" rows="2">${esc(q.q)}</textarea></div>
+    ${q.o.map((o, k) => `<div class="field row" style="flex-wrap:nowrap"><label class="row small" style="white-space:nowrap"><input type="radio" name="qeA" value="${k}" ${q.a === k ? "checked" : ""}> ${LETTERS[k]}</label><input id="qeO${k}" value="${esc(o)}" placeholder="ចម្លើយ ${LETTERS[k]}"></div>`).join("")}
+    <div class="field"><label>ការពន្យល់ (ចាំបាច់សម្រាប់កម្រិតពិបាក)</label><textarea id="qeEx" rows="2">${esc(q.ex || "")}</textarea></div>
+    <div class="row between"><div id="qePreview" class="qm-preview"></div><span class="row"><button class="btn sm ghost" id="qeCancel">បោះបង់</button><button class="btn sm primary" id="qeOk">យល់ព្រម</button></span></div>
+    <div id="qeErr" class="bad-text small"></div>
+  </div></td></tr>`;
+}
+function wireQmEditor() {
+  if (QM.edit == null || !$("qeQ")) return;
+  const D = QM.data, i = QM.edit;
+  const read = () => ({ lv: +$("qeLv").value, q: $("qeQ").value.trim(), o: [0, 1, 2, 3].map((k) => $(`qeO${k}`).value.trim()), a: +(document.querySelector('input[name="qeA"]:checked')?.value ?? 0), ex: $("qeEx").value.trim() });
+  const preview = () => { const q = read(); $("qePreview").innerHTML = `<div class="qm-q">${mf(q.q)}</div><ol class="qm-o">${q.o.map((o, k) => `<li class="${k === q.a ? "ok-text" : ""}">${LETTERS[k]}. ${mf(o)}</li>`).join("")}</ol>${q.ex ? `<div class="qm-ex">${mf(q.ex)}</div>` : ""}`; };
+  ["qeQ", "qeEx", "qeO0", "qeO1", "qeO2", "qeO3"].forEach((id) => $(id).addEventListener("input", preview));
+  document.querySelectorAll('input[name="qeA"]').forEach((r) => r.addEventListener("change", preview));
+  preview();
+  $("qeCancel").addEventListener("click", () => { if (!D.questions[i].q && D.questions[i].o.every((o) => !o)) D.questions.splice(i, 1); QM.edit = null; renderQmList(); });
+  $("qeOk").addEventListener("click", () => {
+    const q = read(); const err = validateQ(q);
+    if (err) { $("qeErr").textContent = err; return; }
+    if (!q.ex) delete q.ex;
+    D.questions[i] = q; QM.dirty = true; QM.edit = null; renderQmList();
+  });
+}
+function validateQ(q) {
+  if (q.q.length < 5) return "សំណួរខ្លីពេក។";
+  if (q.o.some((o) => !o)) return "ត្រូវបំពេញចម្លើយទាំងបួន។";
+  if (new Set(q.o.map((o) => o.replace(/\s+/g, " "))).size !== 4) return "ចម្លើយត្រូវខុសគ្នាទាំងបួន។";
+  if (q.lv === 3 && q.ex.length < 10) return "សំណួរកម្រិតពិបាកត្រូវមានការពន្យល់។";
+  for (const t of [q.q, ...q.o, q.ex]) if ((t.split(/(?<!\\)\$/).length - 1) % 2) return "សញ្ញា $ មិនគូ (unbalanced) ក្នុង៖ " + t.slice(0, 40);
+  return "";
+}
+async function saveQmBank() {
+  const D = QM.data;
+  if (D.questions.length < 15) { QM.msg = { bad: true, text: "ត្រូវមានយ៉ាងតិច ១៥ សំណួរក្នុងមេរៀនមួយ។" }; renderQmList(); return; }
+  $("qmSave").disabled = true;
+  try {
+    const payload = { id: D.id, subject: D.subject, title: D.title, questions: D.questions, updatedAt: Date.now(), updatedBy: S.user.email }; if (D.quizSize) payload.quizSize = D.quizSize;
+    await setDoc(doc(db, "banks", D.id), payload);
+    bankCache[D.id] = { ...payload, fromDb: true }; QM.fromDb = true; QM.dirty = false; QM.msg = { text: `បានរក្សាទុក ${km(D.questions.length)} សំណួរ។ សិស្សនឹងឃើញកំណែថ្មីនៅពេលចាប់ផ្តើមតេស្តបន្ទាប់។` };
+  } catch (e) { QM.msg = { bad: true, text: "រក្សាទុកមិនបាន៖ " + (e.code || e) + (String(e.code).includes("permission") ? " — សូមពិនិត្យថា firestore.rules មានផ្នែក banks (មើល SETUP.md)។" : "") }; }
+  renderQmList();
+}
+function exportQmBank() {
+  const D = QM.data, { s, c } = chapterOf(D.id);
+  const js = (v) => JSON.stringify(v);
+  const lines = D.questions.map((q) => `    { lv: ${q.lv}, q: ${js(q.q)}, o: [${q.o.map(js).join(", ")}], a: ${q.a}${q.ex ? `,\n      ex: ${js(q.ex)}` : ""} },`);
+  const out = `// ${s.name} · ${unitOf(s, c)} · ${D.title}\n// exported from the online question manager ${new Date().toISOString().slice(0, 10)}\nexport default {\n  id: ${js(D.id)},\n  subject: ${js(D.subject)},\n  title: ${js(D.title)},${D.quizSize ? `\n  quizSize: ${D.quizSize},` : ""}\n  questions: [\n${lines.join("\n")}\n  ],\n};\n`;
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([out], { type: "text/javascript" })); a.download = `${D.id}.js`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

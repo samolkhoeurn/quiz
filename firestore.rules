@@ -17,6 +17,12 @@ service cloud.firestore {
 
     // One document per finished quiz: /attempts/{autoId}
     //   { uid, username, bankId, subject, startedAt, finishedAt, totalMs, score, total, answers: [...] }
+    // One document per chapter edited online: /banks/{bankId} — read by any signed-in student, written by the admin
+    match /banks/{bankId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
     match /attempts/{id} {
       allow read: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
       allow create: if signedIn()

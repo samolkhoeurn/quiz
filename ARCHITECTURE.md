@@ -1,37 +1,77 @@
 # Architecture
 
-Full write-up with diagrams and the scale-tier comparison: **[docs/architecture.html](https://samolkhoeurn.github.io/quiz/docs/architecture.html)** (served by GitHub Pages).
+Full write-up with diagrams: **[docs/architecture.html](https://samolkhoeurn.github.io/quiz/docs/architecture.html)** (served by GitHub Pages).
 
-## Today
+## System map
 
-No server of our own. The browser downloads static files from GitHub Pages and talks directly to Firebase.
+No server of our own. The browser downloads the app from GitHub Pages, typesets maths with KaTeX from a CDN, and talks directly to Firebase. Questions have two homes: the files in git (master copy) and, for chapters edited online, a `banks/{id}` document in Firestore that overrides the file.
 
 ```mermaid
 flowchart LR
   subgraph laptop [Your laptop]
     repo[quiz/ folder<br/>GitHub Desktop]
   end
-  subgraph github [GitHub - free]
+  subgraph github [GitHub / CDN - free]
     gh[(Repository)]
-    pages[GitHub Pages CDN<br/>index.html, app.js,<br/>data/subjects.js + 31 banks]
+    pages[GitHub Pages<br/>app.js · subjects.js<br/>53 question files]
+    katex[jsDelivr: KaTeX]
   end
-  subgraph firebase [Google Firebase - free tier]
-    auth[Authentication<br/>e-mail + password]
-    fs[(Firestore<br/>users/{uid}: allowed[], active<br/>attempts/{id}: points, answers[])]
+  subgraph browsers [Browsers]
+    student[Student<br/>Khmer or English UI<br/>draw 25/15 · shuffle · 100 pts]
+    admin[Admin<br/>students · reports<br/>question manager]
   end
-  student[Student browser<br/>draws 25 questions, scores to 100]
-  admin[Admin browser<br/>same app, admin e-mail]
-
-  repo -- git push --> gh -- publishes on push --> pages
-  pages -- GET static files --> student
-  pages -- GET static files --> admin
+  subgraph firebase [Firebase - free tier]
+    auth[Authentication]
+    fs[(Firestore<br/>users · attempts · banks)]
+  end
+  repo -- push --> gh -- publishes --> pages
+  pages --> student
+  pages --> admin
+  katex --> student
   student -- sign in --> auth
-  student -- read own user, write 1 attempt --> fs
-  admin -- create students, set allowed[], read all attempts --> fs
-  admin -. create student login .-> auth
+  admin -- sign in --> auth
+  student -- read users, banks<br/>write attempts --> fs
+  admin -- write users, banks<br/>read attempts --> fs
+  admin -. export .js .-> repo
 ```
 
-Security lives in `firestore.rules`: the admin e-mail may read/write everything; a student may read their own `users` document and create/read their own `attempts`. Question content never touches the database; it ships in the static files and is versioned in git.
+## The two flows
+
+```mermaid
+sequenceDiagram
+  participant S as Student browser
+  participant P as GitHub Pages
+  participant A as Auth
+  participant F as Firestore
+  S->>A: 1 sign in (username → name@g9quiz.local)
+  S->>F: 2 read users/{uid}: allowed chapters, language
+  S->>F: 3a banks/{id} exists? (chapter edited online)
+  S->>P: 3b else fetch data/{id}.js
+  Note over S: 4 draw by level, shuffle options,<br/>points 1:2:3 → 100, KaTeX
+  S->>F: 5 finish → write attempts/{id} (answers, ms, points)
+  Note over S: 6 result page, explanations, fireworks at 100
+```
+
+```mermaid
+sequenceDiagram
+  participant M as Admin browser
+  participant A as Auth
+  participant F as Firestore
+  participant G as Repo (optional)
+  M->>A: 1 sign in with admin e-mail
+  M->>F: 2 load chapter (same rule) + attempts where bankId = id → hit rates
+  Note over M: 3 edit / add / delete, live preview, validation
+  M->>F: 4 save → banks/{id}  (students get it next quiz)
+  M-->>G: 5 export data/{id}.js → commit → file version updated
+```
+
+## Collections
+
+| Collection | Document | Who reads | Who writes |
+|---|---|---|---|
+| `users/{uid}` | name, username, allowed[], active, lang | the student (own), admin | admin |
+| `attempts/{id}` | uid, bankId, points, score, total, answers[{i, chosen, correct, pts, ms}] | the student (own), admin | the student (create), admin |
+| `banks/{bankId}` | id, subject, title, quizSize, questions[] | any signed-in user | admin |
 
 ## Limits that matter first
 
@@ -39,18 +79,12 @@ Security lives in `firestore.rules`: the admin e-mail may read/write everything;
 |---|---|---|---|
 | Students | created one by one | ~30 | no password reset without server code |
 | Admins | one hard-coded e-mail | 1 | a second teacher needs a `role` field |
-| Question banks | 31 files, 1,240 q | thousands of q | authoring/review effort; keys visible client-side |
-| Reports | aggregate all attempts in browser | ~1,000 attempts/student | add a `summary/{uid}` doc |
+| Questions | 53 chapters, 2,211 q, editable online | thousands | review effort; keys visible client-side |
+| Reports / hit rates | aggregate attempts in browser | ~1,000 attempts per student/chapter | add `summary/{uid}` |
 | Firestore free tier | tens of ops/day | ~300 students × 1 quiz/day | 50k reads/day, then pay-as-you-go |
 
 ## Scale tiers
 
-```mermaid
-flowchart TB
-  t1[Tier 1 - today<br/>1 admin, few students, $0<br/>grading in browser]
-  t2[Tier 2 - tutoring group<br/>+ users.role for teachers<br/>+ summary/{uid} per student<br/>+ 1 Cloud Function: reset pw, bulk create]
-  t3[Tier 3 - school / product<br/>+ server-side grading, keys never leave server<br/>+ banks in Firestore with content admin UI<br/>+ orgs / classes, Blaze billing]
-  t1 --> t2 --> t3
-```
+Tier 1 (today): one admin, question manager, grading in browser. Tier 2: `users.role`, `summary/{uid}`, one Cloud Function for password resets/bulk accounts. Tier 3: server-side grading (keys never leave the server), per-question documents, organisations and classes.
 
-Each tier keeps everything from the previous one. The bank format `{lv, q, o, a, ex}` and the attempt format (`answers[]` with chosen, correct, pts, ms) are designed to stay stable through all three.
+The question format `{lv, q, o, a, ex}` and the attempt record are the same in files, Firestore and reports, and stay stable across tiers.

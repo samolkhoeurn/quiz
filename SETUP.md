@@ -68,11 +68,25 @@ You only do this once. Afterwards everything is managed from the admin screen on
 4. Give him the username and password. He logs in on the same site, sees only the chapters you ticked, takes a quiz,
    and the result appears for you under **របាយការណ៍** (with per-question timing).
 
+## Question manager (added later) — one extra rules step
+
+The admin tab **កម្រងសំណួរ** lets you browse, search, edit, add and delete questions online. Edited chapters are stored in
+Firestore (`banks/{chapterId}`) and override the file version. For this to work the rules must include the `banks`
+section: open **Firestore Database → Rules**, replace everything with the current `firestore.rules` from the repository
+(check the admin e-mail), and **Publish**. Without it, saving shows "permission-denied".
+
+The status line at the top of the tab shows how many chapters are in the database. Click **នាំចូល … ជំពូកទៅមូលដ្ឋានទិន្នន័យ** once to load every chapter from the files into Firestore; from then on all quizzes read from the database and the files are the backup. New chapters I add as files appear in that count as "still read from file" until you import them too.
+
 ## Everyday use
 
 - **Open/close chapters**: admin → សិស្ស និងសិទ្ធិ → pick the student → tick/untick → save. Takes effect on his next page load.
 - **Reports**: admin → របាយការណ៍ → pick the student. Summary per chapter, every attempt, the questions he got wrong last time; click an attempt for the full per-question breakdown with seconds spent.
-- **Add a chapter's questions**: a new file `data/<subject>-<nn>.js` plus `bank: true` on that chapter in `data/subjects.js`, then push.
+- **Browse / edit questions**: admin → កម្រងសំណួរ → choose subject and chapter. Search by any word, filter by level, see each
+  question with the maths rendered, the correct answer marked, and the students' hit rate. «កែ» edits with a live preview,
+  «លុប» removes, «+ បន្ថែមសំណួរ» adds. Changes go live when you press «រក្សាទុកទៅមូលដ្ឋានទិន្នន័យ». «នាំចេញ .js» downloads the
+  chapter in file format (drop it into `data/` to make the online edits the new file version); «ត្រឡប់ទៅកំណែឯកសារ» discards
+  the online version.
+- **Add a whole chapter**: a new file `data/<subject>-<nn>.js` plus `bank: true` on that chapter in `data/subjects.js`, then push.
 - **Forgotten student password**: the student can change it himself after logging in (ប្តូរពាក្យសម្ងាត់). If he cannot log in at all, create a new account for him (old results stay attached to the old account); or reset it in Firebase console → Authentication → Users → ⋮ → *Reset password* is e-mail based and will not work for the `@g9quiz.local` usernames, so creating a new account is the practical route.
 - **Disable a student**: untick *គណនីសកម្ម* in his permissions panel.
 
