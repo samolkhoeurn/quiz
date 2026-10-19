@@ -4,8 +4,8 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=17";
-import { SUBJECTS, LEVELS } from "./data/subjects.js?v=17";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=18";
+import { SUBJECTS, LEVELS } from "./data/subjects.js?v=18";
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
@@ -64,7 +64,7 @@ function assignPoints(qs) {
   for (let k = 0; rem > 0; k = (k + 1) % order.length) { pts[order[k]]++; rem--; }
   return pts;
 }
-const secs = (ms) => km(S.uiLang === "en" ? (ms / 1000).toFixed(1) : (ms / 1000).toFixed(1).replace(".", ",")) + " វិ";
+const secs = (ms) => km((ms / 1000).toFixed(1)) + " វិ";   // decimal point, as in the MoEYS/NGS textbooks
 const mins = (ms) => { const s = Math.round(ms / 1000); return s < 60 ? km(s) + " វិ" : `${km(Math.floor(s / 60))} នាទី ${km(s % 60)} វិ`; };
 const fmtDate = (ms) => { const d = new Date(ms); return km(`${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`); };
 const subjectOf = (id) => SUBJECTS.find((s) => s.id === id);
@@ -75,15 +75,20 @@ const ALL_BANKS = SUBJECTS.flatMap((s) => s.chapters.filter((c) => c.bank).map((
 const studentEmail = (u) => `${u.trim().toLowerCase()}@${STUDENT_EMAIL_DOMAIN}`;
 const bankCache = {};
 const fileBankCache = {};
-async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=17`)).default; return fileBankCache[id]; }
+async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=18`)).default; return fileBankCache[id]; }
 // A chapter edited online lives in Firestore (banks/{id}) and overrides the file version; otherwise the file is used.
+// Exception: when the file carries a higher `rev` than the Firestore copy (a revised file was pushed), the file wins
+// until the admin updates the database from the question manager (button in the DB status line).
+const revOf = (b) => Number(b?.rev) || 1;
 async function loadBank(id) {
   if (bankCache[id]) return bankCache[id];
   let bank = null;
   if (db) { try { const snap = await getDoc(doc(db, "banks", id)); if (snap.exists()) bank = { ...snap.data(), fromDb: true }; } catch (e) { console.warn("banks read failed", e.code); } }
+  if (bank) { const file = await loadFileBank(id); if (revOf(file) > revOf(bank)) bank = { ...file, fromDb: false, staleDb: bank }; }
   if (!bank) bank = { ...(await loadFileBank(id)), fromDb: false };
   bankCache[id] = bank; return bank;
 }
+const filePayload = (b, source) => { const p = { id: b.id, subject: b.subject, title: b.title, rev: revOf(b), questions: b.questions, updatedAt: Date.now(), updatedBy: S.user.email, source }; if (b.quizSize) p.quizSize = b.quizSize; return p; };
 
 /* ---------- firebase ---------- */
 const configured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE");
@@ -688,29 +693,36 @@ async function renderAdminBanks() {
   $("qmLv").addEventListener("change", (e) => { QM.lv = +e.target.value; renderQmList(); });
   renderDbStatus();
   if (!QM.bank) { $("qmBody").innerHTML = `<p class="muted">មុខវិជ្ជានេះមិនទាន់មានសំណួរទេ។</p>`; return; }
-  if (!QM.data) { const b = await loadBank(QM.bank); QM.data = JSON.parse(JSON.stringify({ id: b.id, subject: b.subject, title: b.title, quizSize: b.quizSize || null, questions: b.questions })); QM.fromDb = !!b.fromDb; }
+  if (!QM.data) { const b = await loadBank(QM.bank); QM.data = JSON.parse(JSON.stringify({ id: b.id, subject: b.subject, title: b.title, rev: revOf(b), quizSize: b.quizSize || null, questions: b.questions })); QM.fromDb = !!b.fromDb; QM.staleDb = !!b.staleDb; }
   renderQmList();
   if (!QM.stats) loadQmStats();
 }
 // How many chapters live in Firestore; one-click import of the rest from the files.
 async function renderDbStatus() {
   const el = $("qmDbStatus"); if (!el) return;
-  let inDb = [];
-  try { inDb = (await getDocs(collection(db, "banks"))).docs.map((d) => d.id); } catch (e) { el.innerHTML = `<span class="bad-text">អានមូលដ្ឋានទិន្នន័យមិនបាន (${esc(e.code || e)}) — សូមពិនិត្យ firestore.rules ផ្នែក banks។</span>`; return; }
-  QM.inDb = new Set(inDb);
+  let docs = [];
+  try { docs = (await getDocs(collection(db, "banks"))).docs; } catch (e) { el.innerHTML = `<span class="bad-text">អានមូលដ្ឋានទិន្នន័យមិនបាន (${esc(e.code || e)}) — សូមពិនិត្យ firestore.rules ផ្នែក banks។</span>`; return; }
+  const dbRev = Object.fromEntries(docs.map((d) => [d.id, revOf(d.data())]));
+  QM.inDb = new Set(docs.map((d) => d.id));
   const missing = ALL_BANKS.filter((id) => !QM.inDb.has(id));
+  // chapters whose file is newer than the database copy (file rev > db rev)
+  const stale = [];
+  for (const id of ALL_BANKS) if (QM.inDb.has(id)) { try { if (revOf(await loadFileBank(id)) > dbRev[id]) stale.push(id); } catch {} }
   const total = ALL_BANKS.length;
-  el.innerHTML = `<span><strong>មូលដ្ឋានទិន្នន័យ Firestore៖</strong> ${km(inDb.length)} / ${km(total)} ជំពូកនៅក្នុងមូលដ្ឋានទិន្នន័យ${missing.length ? ` · ${km(missing.length)} ជំពូកនៅតែអានពីឯកសារ` : " · ទាំងអស់អានពីមូលដ្ឋានទិន្នន័យ"}</span>
-    ${missing.length ? `<button class="btn sm primary" id="qmImportAll">នាំចូល ${km(missing.length)} ជំពូកទៅមូលដ្ឋានទិន្នន័យ</button>` : `<span class="ok-text small">✓ សំណួរទាំងអស់ស្ថិតក្នុង Firestore</span>`}`;
-  $("qmImportAll")?.addEventListener("click", async (e) => {
+  el.innerHTML = `<span><strong>មូលដ្ឋានទិន្នន័យ Firestore៖</strong> ${km(docs.length)} / ${km(total)} ជំពូកនៅក្នុងមូលដ្ឋានទិន្នន័យ${missing.length ? ` · ${km(missing.length)} ជំពូកនៅតែអានពីឯកសារ` : ""}${stale.length ? ` · <span class="warn-text">${km(stale.length)} ជំពូកមានឯកសារកំណែថ្មីជាង (កំពុងប្រើឯកសារ)</span>` : ""}${!missing.length && !stale.length ? " · ទាំងអស់អានពីមូលដ្ឋានទិន្នន័យ" : ""}</span>
+    ${missing.length ? `<button class="btn sm primary" id="qmImportAll">នាំចូល ${km(missing.length)} ជំពូកទៅមូលដ្ឋានទិន្នន័យ</button>` : ""}
+    ${stale.length ? `<button class="btn sm primary" id="qmUpdateAll">ធ្វើបច្ចុប្បន្នភាព ${km(stale.length)} ជំពូកពីឯកសារ</button>` : ""}
+    ${!missing.length && !stale.length ? `<span class="ok-text small">✓ សំណួរទាំងអស់ស្ថិតក្នុង Firestore</span>` : ""}`;
+  const pushFromFiles = (ids, source) => async (e) => {
     e.target.disabled = true; let n = 0;
-    for (const id of missing) {
-      try { const b = await loadFileBank(id); const payload = { id: b.id, subject: b.subject, title: b.title, questions: b.questions, updatedAt: Date.now(), updatedBy: S.user.email, source: "file" }; if (b.quizSize) payload.quizSize = b.quizSize;
-        await setDoc(doc(db, "banks", id), payload); delete bankCache[id]; n++; e.target.textContent = `កំពុងនាំចូល… ${km(n)} / ${km(missing.length)}`; }
+    for (const id of ids) {
+      try { await setDoc(doc(db, "banks", id), filePayload(await loadFileBank(id), source)); delete bankCache[id]; n++; e.target.textContent = `កំពុងដំណើរការ… ${km(n)} / ${km(ids.length)}`; }
       catch (err) { el.innerHTML = `<span class="bad-text">បរាជ័យនៅ ${id}: ${esc(err.code || err)}</span>`; return; }
     }
     QM.data = null; renderAdminBanks();
-  });
+  };
+  $("qmImportAll")?.addEventListener("click", pushFromFiles(missing, "file"));
+  $("qmUpdateAll")?.addEventListener("click", pushFromFiles(stale, "file-update"));
 }
 function confirmDiscard() { QM.msg = { bad: true, text: "មានការកែប្រែមិនទាន់រក្សាទុក។ សូមចុច «រក្សាទុកទៅមូលដ្ឋានទិន្នន័យ» ឬ «បោះបង់ការកែប្រែ» ជាមុនសិន។" }; renderQmList(); return false; }
 async function loadQmStats() {
@@ -731,13 +743,13 @@ function renderQmList() {
   el.innerHTML = `
     <div class="row between">
       <div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(s.name)}</span><span class="chip">${unitOf(s, c)}</span><span class="chip">${km(D.questions.length)} សំណួរ · ${km(lvCount[0])} / ${km(lvCount[1])} / ${km(lvCount[2])}</span>
-        <span class="chip ${QM.fromDb ? "lv2" : ""}">${QM.fromDb ? "កំណែកែប្រែលើអ៊ីនធឺណិត" : "កំណែពីឯកសារ"}</span>${QM.dirty ? `<span class="chip lv3">មិនទាន់រក្សាទុក</span>` : ""}</div>
+        <span class="chip ${QM.fromDb ? "lv2" : ""}">${QM.fromDb ? "កំណែកែប្រែលើអ៊ីនធឺណិត" : `កំណែពីឯកសារ (កំណែ ${km(D.rev || 1)})`}</span>${QM.staleDb ? `<span class="chip lv3" title="ឯកសារថ្មីជាងកំណែក្នុង Firestore — ចុច «រក្សាទុកទៅមូលដ្ឋានទិន្នន័យ» ដើម្បីធ្វើបច្ចុប្បន្នភាព">កំណែ Firestore ចាស់</span>` : ""}${QM.dirty ? `<span class="chip lv3">មិនទាន់រក្សាទុក</span>` : ""}</div>
       <div class="row">
         <button class="btn sm" id="qmAdd">+ បន្ថែមសំណួរ</button>
         <button class="btn sm" id="qmExport" title="ទាញយកជាឯកសារ data/${D.id}.js">នាំចេញ .js</button>
         ${QM.fromDb ? `<button class="btn sm danger" id="qmReset">ត្រឡប់ទៅកំណែឯកសារ</button>` : ""}
         <button class="btn sm ghost" id="qmDiscard" ${QM.dirty ? "" : "disabled"}>បោះបង់ការកែប្រែ</button>
-        <button class="btn sm primary" id="qmSave" ${QM.dirty ? "" : "disabled"}>រក្សាទុកទៅមូលដ្ឋានទិន្នន័យ</button>
+        <button class="btn sm primary" id="qmSave" ${QM.dirty || QM.staleDb ? "" : "disabled"}>រក្សាទុកទៅមូលដ្ឋានទិន្នន័យ</button>
       </div>
     </div>
     ${QM.msg ? `<div class="notice ${QM.msg.bad ? "bad" : "ok"}">${esc(QM.msg.text)}</div>` : ""}
@@ -799,9 +811,9 @@ async function saveQmBank() {
   if (D.questions.length < 15) { QM.msg = { bad: true, text: "ត្រូវមានយ៉ាងតិច ១៥ សំណួរក្នុងមេរៀនមួយ។" }; renderQmList(); return; }
   $("qmSave").disabled = true;
   try {
-    const payload = { id: D.id, subject: D.subject, title: D.title, questions: D.questions, updatedAt: Date.now(), updatedBy: S.user.email }; if (D.quizSize) payload.quizSize = D.quizSize;
+    const payload = { id: D.id, subject: D.subject, title: D.title, rev: D.rev || 1, questions: D.questions, updatedAt: Date.now(), updatedBy: S.user.email }; if (D.quizSize) payload.quizSize = D.quizSize;
     await setDoc(doc(db, "banks", D.id), payload);
-    bankCache[D.id] = { ...payload, fromDb: true }; QM.fromDb = true; QM.dirty = false; QM.msg = { text: `បានរក្សាទុក ${km(D.questions.length)} សំណួរ។ សិស្សនឹងឃើញកំណែថ្មីនៅពេលចាប់ផ្តើមតេស្តបន្ទាប់។` };
+    bankCache[D.id] = { ...payload, fromDb: true }; QM.fromDb = true; QM.staleDb = false; QM.dirty = false; QM.msg = { text: `បានរក្សាទុក ${km(D.questions.length)} សំណួរ។ សិស្សនឹងឃើញកំណែថ្មីនៅពេលចាប់ផ្តើមតេស្តបន្ទាប់។` };
   } catch (e) { QM.msg = { bad: true, text: "រក្សាទុកមិនបាន៖ " + (e.code || e) + (String(e.code).includes("permission") ? " — សូមពិនិត្យថា firestore.rules មានផ្នែក banks (មើល SETUP.md)។" : "") }; }
   renderQmList();
 }
@@ -809,6 +821,6 @@ function exportQmBank() {
   const D = QM.data, { s, c } = chapterOf(D.id);
   const js = (v) => JSON.stringify(v);
   const lines = D.questions.map((q) => `    { lv: ${q.lv}, q: ${js(q.q)}, o: [${q.o.map(js).join(", ")}], a: ${q.a}${q.ex ? `,\n      ex: ${js(q.ex)}` : ""} },`);
-  const out = `// ${s.name} · ${unitOf(s, c)} · ${D.title}\n// exported from the online question manager ${new Date().toISOString().slice(0, 10)}\nexport default {\n  id: ${js(D.id)},\n  subject: ${js(D.subject)},\n  title: ${js(D.title)},${D.quizSize ? `\n  quizSize: ${D.quizSize},` : ""}\n  questions: [\n${lines.join("\n")}\n  ],\n};\n`;
+  const out = `// ${s.name} · ${unitOf(s, c)} · ${D.title}\n// exported from the online question manager ${new Date().toISOString().slice(0, 10)}\nexport default {\n  id: ${js(D.id)},\n  subject: ${js(D.subject)},\n  title: ${js(D.title)},\n  rev: ${D.rev || 1},${D.quizSize ? `\n  quizSize: ${D.quizSize},` : ""}\n  questions: [\n${lines.join("\n")}\n  ],\n};\n`;
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([out], { type: "text/javascript" })); a.download = `${D.id}.js`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

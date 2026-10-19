@@ -77,6 +77,11 @@ section: open **Firestore Database → Rules**, replace everything with the curr
 
 The status line at the top of the tab shows how many chapters are in the database. Click **នាំចូល … ជំពូកទៅមូលដ្ឋានទិន្នន័យ** once to load every chapter from the files into Firestore; from then on all quizzes read from the database and the files are the backup. New chapters I add as files appear in that count as "still read from file" until you import them too.
 
+When a chapter *file* is revised (its `rev` number goes up), the site automatically uses the newer file instead of the older
+Firestore copy, and the status line shows **N ជំពូកមានឯកសារកំណែថ្មីជាង** with a button **ធ្វើបច្ចុប្បន្នភាព … ជំពូកពីឯកសារ** that
+copies the revised files into Firestore. Until you press it nothing is lost — the old Firestore copy stays, it is just not used.
+If you had edited that chapter online, re-apply your edits on the new version and save.
+
 ## Everyday use
 
 - **Open/close chapters**: admin → សិស្ស និងសិទ្ធិ → pick the student → tick/untick → save. Takes effect on his next page load.

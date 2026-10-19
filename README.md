@@ -11,8 +11,10 @@ Practice quizzes for a Cambodian grade 9 student: the four MoEYS subjects in Khm
 | `data/<subject>-<nn>.js` | One question bank per chapter: `{lv, q, o[4], a, ex}` — level 1/2/3, question, options, correct index, explanation. English banks (`enmath-*`) write maths in LaTeX between `$…$`, rendered by KaTeX |
 | `general.html` | The original two-team general-knowledge quiz (no login) |
 
-Chapter lists follow the MoEYS textbooks: *កំណែលំហាត់គណិតវិទ្យាទី៩* (18 lessons), *ឯកសារស្វ័យសិក្សារូបវិទ្យាទី៩* (5 chapters),
-*សៀវភៅកិច្ចការផ្ទះជីវវិទ្យាទី៩* (5 chapters), and the MoEYS e-learning chemistry outline (3 chapters).
+Chapter lists and question content follow the official books: the NGS *សៀវភៅកិច្ចការផ្ទះ គណិតវិទ្យា ថ្នាក់ទី៩* (2021, 18 lessons)
+for maths, and the MoEYS student textbook *វិទ្យាសាស្ត្រ ថ្នាក់ទី៩* (2020) for physics (5 chapters), chemistry (3) and biology (5),
+cross-checked against the NGS workbooks, the MoEYS teacher's guides and the NGS biology MCQ book. All 31 Khmer banks were
+revised against these books in October 2026 (`rev: 2` in each file; 1 500+ questions, 44–52 per chapter).
 
 ## Interface language
 

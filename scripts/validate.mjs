@@ -41,6 +41,7 @@ for (const id of ids.sort()) {
     const key = norm(q.q); if (seen.has(key)) { console.log(`✗ ${tag}: duplicate question`); problems++; } seen.add(key);
     for (const txt of [q.q, ...q.o, q.ex || ""]) problems += checkLatex(txt, tag);
     if ((subj === "enmath" || subj === "enmathy2") && /[√²³×÷≤≥≠]/.test(q.q + q.o.join("") + (q.ex || ""))) { console.log(`✗ ${tag}: use LaTeX instead of Unicode maths symbols in English banks`); problems++; }
+    if (["math", "physics", "chemistry", "biology"].includes(subj) && /\d,\d/.test(q.q + q.o.join("") + (q.ex || ""))) { console.log(`✗ ${tag}: decimal comma — the textbooks use the decimal point (0.5)`); problems++; }
   });
   const n = b.questions?.length || 0;
   const share = (k) => (n ? Math.round((100 * lv[k]) / n) : 0);

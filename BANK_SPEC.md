@@ -3,7 +3,17 @@
 Audience: a Cambodian grade 9 student preparing for the national grade 9 exam (ប្រឡងសញ្ញាបត្រមធ្យមសិក្សាបឋមភូមិ).
 Language: Khmer. English terms in parentheses only where the textbook itself uses them or where it helps
 (e.g. "ម៉ូម៉ង់ (moment)", "photosynthesis"). Numbers and formulas in math/science use Arabic digits and standard
-symbols (√, ², ³, ×, ÷, ≤, ≥, π, °, cm, m/s, N, N·m, CO₂ …). Decimal comma as in Khmer textbooks: 0,5 ; 2,25.
+symbols (√, ², ³, ×, ÷, ≤, ≥, π, °, cm, m/s, N, N·m, CO₂ …). Decimal **point**, as in the MoEYS and NGS textbooks: 0.5 ; 2.25 (never a comma).
+
+## Source books (terminology, depth and exercise style must follow these)
+
+- Maths: សៀវភៅកិច្ចការផ្ទះ គណិតវិទ្យា ថ្នាក់ទី៩ (NGS វិទ្យាល័យព្រះស៊ីសុវត្ថិ, 2021) — 18 lessons, same order as `data/subjects.js`.
+  Spellings: ការេ (not ការ៉េ), ឫសការេ/ឫសគូប, រ៉ាឌីកាល់, ជ្រុងជាប់មុំកែង, «សមីការមានឫស x = …», coordinates `A(x, y)`, segments `[AB]`.
+- Physics, chemistry, biology: វិទ្យាសាស្ត្រ ថ្នាក់ទី៩ (ក្រសួងអប់រំ យុវជន និងកីឡា, 2020) is the authority; the NGS workbooks,
+  MoEYS teacher's guides and the NGS biology MCQ book show the question style. Voltage is written V (P = IV, V = RI);
+  chemistry groups are numbered 1–18; fuse = ភុយស៊ីប; indicators ក្រដាសទួណេសុល / ផេណុលផ្តាលេអ៊ីន; moment sign: clockwise negative.
+- Do not test content these books do not teach at grade 9 (e.g. Snell's law with sines, F = BIL, antibiotics, Pythagorean-triple vocabulary).
+- Every revised bank carries `rev: 2`; bump `rev` whenever a file is revised so the site prefers it over an older Firestore copy.
 
 ## File format (ES module)
 
@@ -14,6 +24,7 @@ export default {
   id: "math-02",            // MUST equal the file name without .js
   subject: "math",          // math | physics | chemistry | biology
   title: "សមាមាត្រ",         // exactly the official chapter/lesson title from data/subjects.js
+  rev: 2,                   // file revision; a higher rev than the Firestore copy makes the site use the file
   questions: [
     { lv: 1, q: "…?", o: ["…", "…", "…", "…"], a: 2 },
     { lv: 2, q: "…?", o: ["…", "…", "…", "…"], a: 0, ex: "…" },
