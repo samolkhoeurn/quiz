@@ -1,6 +1,6 @@
 # រៀនថ្នាក់ទី៩ · កម្រងសំណួរ
 
-Practice quizzes for a Cambodian grade 9 student: the four MoEYS subjects in Khmer (31 chapters), English *Mathematics (Year 9)* (14 chapters) and *Mathematics (Year 2)* (8 chapters) subjects following the Australian Curriculum v9.0, plus the two-team general-knowledge game.
+Practice quizzes for a Cambodian grade 9 student: the four MoEYS subjects in Khmer (31 chapters), English *Mathematics (Year 9)* (14 chapters) and *Mathematics (Year 2)* (8 chapters) following the Australian Curriculum v9.0, and a Khmer *General knowledge* subject (34 themed rounds of 30 questions) that can be played solo or as Team A vs Team B. The original stand-alone two-team game remains at `general.html`.
 
 | File | What it is |
 |---|---|

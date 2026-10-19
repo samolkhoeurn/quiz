@@ -4,8 +4,8 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=15";
-import { SUBJECTS, LEVELS } from "./data/subjects.js?v=15";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=16";
+import { SUBJECTS, LEVELS } from "./data/subjects.js?v=16";
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
@@ -75,7 +75,7 @@ const ALL_BANKS = SUBJECTS.flatMap((s) => s.chapters.filter((c) => c.bank).map((
 const studentEmail = (u) => `${u.trim().toLowerCase()}@${STUDENT_EMAIL_DOMAIN}`;
 const bankCache = {};
 const fileBankCache = {};
-async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=15`)).default; return fileBankCache[id]; }
+async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=16`)).default; return fileBankCache[id]; }
 // A chapter edited online lives in Firestore (banks/{id}) and overrides the file version; otherwise the file is used.
 async function loadBank(id) {
   if (bankCache[id]) return bankCache[id];
@@ -274,10 +274,77 @@ async function renderQuizIntro(bankId) {
       <strong>របៀបធ្វើ៖</strong> សំណួរត្រូវបានចាប់យកដោយចៃដន្យពីធនាគារ ដូច្នេះការធ្វើម្តងទៀតនឹងបានសំណួរខុសគ្នា។ ជ្រើសរើសចម្លើយមួយក្នុងចំណោមបួន។ សំណួរពិបាកមានពិន្ទុច្រើនជាង (ងាយ ១ : មធ្យម ២ : ពិបាក ៣) សរុប ១០០ ពិន្ទុ។ អ្នកអាចត្រឡប់ទៅកែចម្លើយបាន មុនពេលដាក់ស្នើ។
       ពេលវេលាដែលចំណាយលើសំណួរនីមួយៗត្រូវបានកត់ត្រា ប៉ុន្តែគ្មានការកំណត់ពេលទេ។ ចម្លើយត្រឹមត្រូវ និងការពន្យល់ បង្ហាញបន្ទាប់ពីដាក់ស្នើ។
     </div>
-    <div class="row between"><button class="btn ghost" id="back">← ត្រឡប់</button><button class="btn primary" id="start">ចាប់ផ្តើម</button></div>
+    ${s.team ? `<div class="notice" style="background:var(--panel)"><strong>លេងជាក្រុម៖</strong> ក្រុម A និងក្រុម B ឆ្លើយសំណួរដូចគ្នាម្តងមួយៗ រួចបង្ហាញចម្លើយ និងបូកពិន្ទុក្រុមនីមួយៗ (ដូចល្បែងចំណេះដឹងទូទៅ) ។ លទ្ធផលល្បែងក្រុមមិនត្រូវបានរក្សាទុកក្នុងរបាយការណ៍ទេ។</div>` : ""}
+    <div class="row between"><button class="btn ghost" id="back">← ត្រឡប់</button><span class="row">${s.team ? `<button class="btn" id="startTeam">លេងជាក្រុម A / B</button>` : ""}<button class="btn primary" id="start">${s.team ? "ធ្វើម្នាក់ឯង" : "ចាប់ផ្តើម"}</button></span></div>
   </div>`;
   $("back").addEventListener("click", () => renderChapterList(s.id));
   $("start").addEventListener("click", () => startQuiz(bank));
+  $("startTeam")?.addEventListener("click", () => startTeamQuiz(bank));
+}
+
+/* ---------- team mode (Team A vs Team B on the same questions) ---------- */
+function drawSet(bank) {
+  const idx = drawQuestions(bank);
+  const qs = idx.map((qi) => { const q = bank.questions[qi]; const perm = shuffle([0, 1, 2, 3]); return { qi, lv: q.lv, q: q.q, o: perm.map((k) => q.o[k]), perm, a: perm.indexOf(q.a), ex: q.ex }; });
+  assignPoints(qs).forEach((p, i) => (qs[i].pts = p));
+  return qs;
+}
+function startTeamQuiz(bank) {
+  const qs = drawSet(bank);
+  S.quiz = null;
+  S.team = { bank, qs, i: 0, picks: qs.map(() => ({})), revealed: false, scoreA: 0, scoreB: 0, nameA: "ក្រុម A", nameB: "ក្រុម B", log: [], quitConfirm: false };
+  nav(`<span class="who">${esc(S.profile?.displayName || "")}</span><button class="btn ghost sm" id="teamQuit">បោះបង់</button>`);
+  $("teamQuit").addEventListener("click", () => { S.team.quitConfirm = true; renderTeam(); });
+  renderTeam();
+}
+function teamPanel(team) {
+  const T = S.team, q = T.qs[T.i], chosen = T.picks[T.i][team], name = team === "A" ? T.nameA : T.nameB, done = T.revealed;
+  const state = chosen == null ? "កំពុងរង់ចាំចម្លើយ…" : done ? "" : "បានជ្រើសរើស ✓";
+  const result = !done ? "" : chosen == null ? `<div class="result bad">មិនបានឆ្លើយ · ០ ពិន្ទុ</div>` : chosen === q.a ? `<div class="result ok">ត្រឹមត្រូវ! +${km(q.pts)} ពិន្ទុ</div>` : `<div class="result bad">ខុស · ០ ពិន្ទុ</div>`;
+  return `<section class="team ${team.toLowerCase()}"><h2><span>${esc(name)}</span><span class="state">${state}</span></h2><div class="opts">${q.o.map((t, k) => {
+    let cls = "opt"; if (!done && chosen === k) cls += " sel"; if (done) { if (k === q.a) cls += " right"; else if (chosen === k) cls += " wrong"; }
+    return `<button class="${cls}" ${done ? "disabled" : ""} data-team="${team}" data-k="${k}"><span class="k">${LETTERS[k]}</span><span>${mf(t)}</span></button>`; }).join("")}</div>${result}</section>`;
+}
+function renderTeam() {
+  const T = S.team, n = T.qs.length;
+  if (T.i >= n) return renderTeamFinal();
+  const q = T.qs[T.i], p = T.picks[T.i], both = p.A != null && p.B != null;
+  app.innerHTML = `<div class="card">
+    ${T.quitConfirm ? `<div class="notice bad row between"><span>បោះបង់ល្បែងនេះ?</span><span class="row"><button class="btn danger sm" id="tqYes">បាទ/ចាស បោះបង់</button><button class="btn ghost sm" id="tqNo">បន្តលេង</button></span></div>` : ""}
+    <div class="scores">
+      <div class="score a"><input id="tnA" value="${esc(T.nameA)}" aria-label="ឈ្មោះក្រុម A"><div class="num">${km(T.scoreA)}</div><small>ពិន្ទុ / ១០០</small></div>
+      <div class="vs">ទល់</div>
+      <div class="score b"><input id="tnB" value="${esc(T.nameB)}" aria-label="ឈ្មោះក្រុម B"><div class="num">${km(T.scoreB)}</div><small>ពិន្ទុ / ១០០</small></div>
+    </div>
+    <div class="qhead"><span class="muted">សំណួរទី ${km(T.i + 1)} / ${km(n)}</span><span class="row"><span class="chip lv${q.lv}">${LEVELS[q.lv]}</span><span class="chip pts">${km(q.pts)} ពិន្ទុ</span></span></div>
+    <p class="qtext">${km(T.i + 1)}. ${mf(q.q)}</p>
+    <div class="teams">${teamPanel("A")}${teamPanel("B")}</div>
+    ${T.revealed ? `<div class="answerline">ចម្លើយត្រឹមត្រូវ៖ ${LETTERS[q.a]}. ${mf(q.o[q.a])}</div>${q.ex ? `<div class="explain"><strong>ការពន្យល់៖</strong> ${mf(q.ex)}</div>` : ""}` : ""}
+    <div class="actions"><span class="hint">${T.revealed ? "" : both ? "ក្រុមទាំងពីរបានឆ្លើយរួចហើយ" : "ក្រុមនីមួយៗជ្រើសរើសចម្លើយមួយ រួចចុច «បង្ហាញចម្លើយ»"}</span>
+      ${T.revealed ? `<button class="btn primary" id="tNext">${T.i + 1 === n ? "មើលលទ្ធផល" : "សំណួរបន្ទាប់ →"}</button>` : `<button class="btn primary" id="tReveal" ${both ? "" : "disabled"}>បង្ហាញចម្លើយ</button>`}
+    </div></div>`;
+  app.querySelectorAll("[data-team]").forEach((b) => b.addEventListener("click", () => { if (T.revealed) return; T.picks[T.i][b.dataset.team] = +b.dataset.k; renderTeam(); }));
+  $("tReveal")?.addEventListener("click", () => { const gA = p.A === q.a, gB = p.B === q.a; if (gA) T.scoreA += q.pts; if (gB) T.scoreB += q.pts; T.log.push({ A: gA, B: gB }); T.revealed = true; renderTeam(); });
+  $("tNext")?.addEventListener("click", () => { T.i++; T.revealed = false; renderTeam(); });
+  $("tqYes")?.addEventListener("click", () => { S.team = null; renderStudentHome(); });
+  $("tqNo")?.addEventListener("click", () => { T.quitConfirm = false; renderTeam(); });
+  $("tnA").addEventListener("input", (e) => (T.nameA = e.target.value || "ក្រុម A"));
+  $("tnB").addEventListener("input", (e) => (T.nameB = e.target.value || "ក្រុម B"));
+  $("tnA").addEventListener("change", renderTeam); $("tnB").addEventListener("change", renderTeam);
+}
+function renderTeamFinal() {
+  const T = S.team, a = T.scoreA, b = T.scoreB, { s } = chapterOf(T.bank.id);
+  const winner = a === b ? "ស្មើគ្នា!" : a > b ? `${esc(T.nameA)} ឈ្នះ!` : `${esc(T.nameB)} ឈ្នះ!`;
+  nav(`${logoutBtn()}`);
+  app.innerHTML = `<div class="card final">
+    <div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(sName(s))}</span><span class="chip">${esc(T.bank.title)}</span></div>
+    <div class="winner">${winner}</div>
+    <div style="font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums"><span style="color:var(--teamA)">${esc(T.nameA)} ${km(a)}</span> &nbsp;·&nbsp; <span style="color:var(--teamB)">${esc(T.nameB)} ${km(b)}</span></div>
+    <div class="stats" style="width:100%;max-width:520px"><div class="stat"><div class="v">${km(T.log.filter((x) => x.A).length)} / ${km(T.qs.length)}</div><div class="l">${esc(T.nameA)} ត្រឹមត្រូវ</div></div><div class="stat"><div class="v">${km(T.log.filter((x) => x.B).length)} / ${km(T.qs.length)}</div><div class="l">${esc(T.nameB)} ត្រឹមត្រូវ</div></div></div>
+    <div class="row"><button class="btn" id="tAgain">លេងម្តងទៀត</button><button class="btn primary" id="tHome">ត្រឡប់ទៅទំព័រដើម</button></div></div>`;
+  $("tAgain").addEventListener("click", () => startTeamQuiz(T.bank));
+  $("tHome").addEventListener("click", () => { S.team = null; renderStudentHome(); });
+  if (Math.max(a, b) === 100 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) fireworks(6000);
 }
 
 /* ---------- quiz engine ---------- */

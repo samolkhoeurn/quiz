@@ -97,3 +97,21 @@ All the English/LaTeX rules above apply, with these changes for young learners:
 - Use Australian contexts a child knows: school, playground, lunch box, dollars and cents, kangaroos, the beach.
 - Options: 4 distinct, child-plausible answers (common slips like off-by-one, forgetting to regroup). Even spread of `a`.
 - 36–45 questions per chapter, grouped by the `sub` topics with comments; title must equal `data/subjects.js` exactly.
+
+---
+
+# General-knowledge banks (subject `gk`, ចំណេះដឹងទូទៅ, 34 themed rounds)
+
+- **Khmer language.** Use English (Latin script) for foreign proper nouns that have no established Khmer form or
+  would be unrecognisable transliterated: people (Albert Einstein, Lionel Messi), places (Paris, Mount Everest),
+  brands and works (Google, "Romeo and Juliet"). Well-known Khmer forms stay Khmer (បារាំង, ជប៉ុន, អង់គ្លេស, ទន្លេមេគង្គ).
+  Pattern: Khmer sentence with the English name inline, e.g. "អ្នកណាបានសរសេរ «Romeo and Juliet»?" / "ទីក្រុង Paris ជារាជធានីនៃប្រទេសណា?".
+- **Exactly 30 questions per round** and `quizSize: 30` in the bank object (a round is played in full; order and options are shuffled).
+- Level mix about 35 % easy / 40 % medium / 25 % hard. Points are weighted by level in the app.
+- **Every question has a short `ex`** (one sentence of context: "Angkor Wat was built in the early 12th century under Suryavarman II").
+- **Facts must be stable and verifiable**: no "current" office-holders, no "latest" records that change yearly, no
+  disputed claims. Prefer facts true for decades (capitals, founding years, inventors, geography, classic works, rules of sports).
+  Dates for Cambodian history follow the MoEYS textbooks (e.g. independence 9 November 1953, Angkor Wat 12th century, Paris Peace Agreements 23 October 1991).
+- Use Khmer digits for years and counts in prose only where natural; Arabic digits are acceptable (ឆ្នាំ 1953 or ១៩៥៣ — be consistent within a bank).
+- Each round covers only its theme (title in `data/subjects.js`), with variety inside the theme; no two rounds should repeat a fact.
+- 4 options, distinct and plausible (same category: four cities, four years, four people), even spread of `a`.

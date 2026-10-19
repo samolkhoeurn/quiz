@@ -167,3 +167,30 @@ table.qm td{vertical-align:top}
 .qm-editor textarea,.qm-editor input[type=text],.qm-editor input:not([type]){border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);width:100%;font:inherit;color:inherit}
 .qm-editor .field.row input:not([type=radio]){flex:1}
 .qm-preview{flex:1;min-width:0;padding:8px 12px;border:1px dashed var(--line);border-radius:10px}
+
+/* team mode (general knowledge) */
+:root{--teamA:#0f766e;--teamA-soft:#d9f0ec;--teamB:#9d174d;--teamB-soft:#f8dde9}
+@media (prefers-color-scheme: dark){:root{--teamA:#3ccbbb;--teamA-soft:#153a37;--teamB:#f06aa5;--teamB-soft:#44192c}}
+.scores{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch}
+.score{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:grid;gap:2px;min-width:0;border-top:4px solid var(--teamA)}
+.score.b{border-top-color:var(--teamB);text-align:right}
+.score input{font:inherit;font-weight:600;background:transparent;border:0;border-bottom:1px dashed var(--line);color:var(--ink);width:100%;min-width:0;padding:0}
+.score.b input{text-align:right}
+.score .num{font-size:2rem;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--teamA)}
+.score.b .num{color:var(--teamB)}
+.score small{color:var(--muted);font-size:.8rem}
+.vs{align-self:center;font-family:var(--display);color:var(--muted);font-size:.9rem}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:680px){.teams{grid-template-columns:1fr}.scores{grid-template-columns:1fr 1fr}.vs{display:none}}
+.team{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;min-width:0;align-content:start}
+.team h2{margin:0;font-size:1rem;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.team.a h2{color:var(--teamA)} .team.b h2{color:var(--teamB)}
+.team .state{font-size:.85rem;font-weight:500;color:var(--muted)}
+.team.a .opt.sel{border-color:var(--teamA);background:var(--teamA-soft)} .team.a .opt.sel .k{background:var(--teamA);color:#fff;border-color:var(--teamA)}
+.team.b .opt.sel{border-color:var(--teamB);background:var(--teamB-soft)} .team.b .opt.sel .k{background:var(--teamB);color:#fff;border-color:var(--teamB)}
+.result{font-weight:700;font-size:.95rem} .result.ok{color:var(--ok)} .result.bad{color:var(--bad)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+.hint{color:var(--muted);font-size:.9rem}
+.answerline{padding:12px 14px;border-radius:12px;background:var(--ok-soft);color:var(--ok);font-weight:600;border:1px solid var(--ok)}
+.final{text-align:center;justify-items:center}
+.final .winner{font-family:var(--display);font-size:clamp(1.3rem,4vw,2rem);color:var(--gold);line-height:1.7}
