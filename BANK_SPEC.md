@@ -75,3 +75,25 @@ plausible options, even spread of `a`, validator must pass). Differences:
 - Each chapter must cover the Year 9 content descriptions listed for it in `data/subjects.js` (`sub` field) and should
   include a few "mathematical modelling" style word problems (AC9M9A05 / AC9M9M05) with interpretation of the answer.
 - `title` must equal the chapter title in `data/subjects.js` exactly.
+
+---
+
+# Year 2 banks (subject `enmathy2`, Australian Curriculum v9.0 Year 2, age 7–8)
+
+All the English/LaTeX rules above apply, with these changes for young learners:
+
+- **Set `quizSize: 15`** in the bank object (next to `id`, `subject`, `title`) so a quiz draws 15 questions, not 25.
+- **Very simple English**: short sentences, everyday words, one idea per question. A Year 2 child (or a parent reading
+  aloud) must understand it. Example: "Tom has 14 marbles. He gives 6 to Mia. How many marbles does Tom have now?"
+- **Every question has an `ex`**, one or two short friendly sentences that show the thinking
+  ("Count on from 14: 15, 16, 17, 18. So 14 + 4 = 18."). Hard questions too, of course.
+- Numbers and sums in LaTeX: `$14 + 4 = 18$`, `$36 = 30 + 6$`, `$\frac{1}{2}$`, `$\frac{1}{4}$`, `$2 \times 5$`, `$10 \div 2$`.
+  Money as `\$4.50` in prose or `$\$4.50$` in maths; coins: 5c, 10c, 20c, 50c, \$1, \$2; notes \$5, \$10, \$20, \$50, \$100.
+- Levels: lv 1 = recall/one step, lv 2 = two steps or a word problem, lv 3 = reasoning, comparison or a two-step word
+  problem — still Year 2 difficulty, never Year 3+ content (no numbers beyond 1000, no formal multiplication beyond
+  2s, 5s and 10s, no fractions other than halves, quarters, eighths).
+- No pictures are available, so describe things in words ("a shape with 3 straight sides", "the hour hand points to 3
+  and the minute hand points to 12", "a row of 4 apples, 3 rows").
+- Use Australian contexts a child knows: school, playground, lunch box, dollars and cents, kangaroos, the beach.
+- Options: 4 distinct, child-plausible answers (common slips like off-by-one, forgetting to regroup). Even spread of `a`.
+- 36–45 questions per chapter, grouped by the `sub` topics with comments; title must equal `data/subjects.js` exactly.

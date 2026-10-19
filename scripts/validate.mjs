@@ -2,7 +2,7 @@
 import { readdirSync } from "fs";
 import { pathToFileURL } from "url";
 const dir = new URL("../data/", import.meta.url);
-const ids = process.argv.slice(2).length ? process.argv.slice(2) : readdirSync(dir).filter((f) => /^[a-z]+-\d\d\.js$/.test(f)).map((f) => f.slice(0, -3));
+const ids = process.argv.slice(2).length ? process.argv.slice(2) : readdirSync(dir).filter((f) => /^[a-z0-9]+-\d\d\.js$/.test(f)).map((f) => f.slice(0, -3));
 let problems = 0, total = 0;
 const norm = (s) => String(s).replace(/\s+/g, " ").trim();
 // Optional LaTeX check: uses a globally installed katex if present (npm i -g katex)
@@ -40,7 +40,7 @@ for (const id of ids.sort()) {
     if (q.lv === 3 && !(q.ex && norm(q.ex).length > 15)) { console.log(`✗ ${tag}: hard question needs an explanation (ex)`); problems++; }
     const key = norm(q.q); if (seen.has(key)) { console.log(`✗ ${tag}: duplicate question`); problems++; } seen.add(key);
     for (const txt of [q.q, ...q.o, q.ex || ""]) problems += checkLatex(txt, tag);
-    if (subj === "enmath" && /[√²³×÷≤≥≠]/.test(q.q + q.o.join("") + (q.ex || ""))) { console.log(`✗ ${tag}: use LaTeX instead of Unicode maths symbols in English banks`); problems++; }
+    if ((subj === "enmath" || subj === "enmathy2") && /[√²³×÷≤≥≠]/.test(q.q + q.o.join("") + (q.ex || ""))) { console.log(`✗ ${tag}: use LaTeX instead of Unicode maths symbols in English banks`); problems++; }
   });
   const n = b.questions?.length || 0;
   const share = (k) => (n ? Math.round((100 * lv[k]) / n) : 0);

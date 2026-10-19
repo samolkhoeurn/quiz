@@ -73,6 +73,19 @@ export const SUBJECTS = [
       { id: "enmath-14", n: 14, title: "Probability", sub: "compound events · tree diagrams · two-way tables · Venn diagrams · relative frequency", bank: true },
     ],
   },
+  {
+    id: "enmathy2", name: "Mathematics (Year 2)", en: "Australian Curriculum v9.0 · for younger learners", color: "#db2777", unit: "Chapter", lang: "en", kids: true,
+    chapters: [
+      { id: "enmathy2-01", n: 1, title: "Numbers to 1000 and place value", sub: "counting · reading and writing numbers · ordering · hundreds, tens and ones · number lines", bank: true },
+      { id: "enmathy2-02", n: 2, title: "Addition and subtraction", sub: "facts to 20 · adding and taking away two-digit numbers · number sentences · missing numbers", bank: true },
+      { id: "enmathy2-03", n: 3, title: "Multiplication and division", sub: "equal groups · arrays · twos, fives and tens · sharing · doubling and halving", bank: true },
+      { id: "enmathy2-04", n: 4, title: "Fractions: halves, quarters and eighths", sub: "one half · one quarter · one eighth · fractions of shapes and groups", bank: true },
+      { id: "enmathy2-05", n: 5, title: "Money and problem solving", sub: "Australian coins and notes · making amounts · change · word problems", bank: true },
+      { id: "enmathy2-06", n: 6, title: "Patterns and number sentences", sub: "growing and shrinking patterns · what comes next · missing elements · odd and even", bank: true },
+      { id: "enmathy2-07", n: 7, title: "Measurement, time and calendars", sub: "length, mass and capacity · reading clocks · days, weeks and months · turns", bank: true },
+      { id: "enmathy2-08", n: 8, title: "Shapes, position and data", sub: "2D shapes and 3D objects · sides and corners · maps and directions · tallies and picture graphs", bank: true },
+    ],
+  },
 ];
 
 export const LEVELS = { 1: "ងាយ", 2: "មធ្យម", 3: "ពិបាក" };

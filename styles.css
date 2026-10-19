@@ -140,3 +140,10 @@ tr.clickable{cursor:pointer} tr.clickable:hover td{background:var(--soft)}
 .katex{font-size:1.05em}
 .qtext .katex{font-size:1.1em}
 .katex-display{margin:.4em 0}
+
+/* young-learner mode (subject.kids): bigger text and targets */
+body.kids .qtext{font-size:clamp(1.35rem,3vw,1.8rem);line-height:1.7}
+body.kids .opt{font-size:1.2rem;padding:16px 18px}
+body.kids .opt .k{flex-basis:36px;height:36px;font-size:1rem}
+body.kids .katex{font-size:1.25em}
+body.kids .explain{font-size:1.05rem}

@@ -4,13 +4,13 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=9";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=10";
 import { SUBJECTS, LEVELS } from "./data/subjects.js";
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
 const app = $("app"), topnav = $("topnav");
-const km = (n) => String(n).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[d]);
+const km = (n) => (S.uiLang === "en" ? String(n) : String(n).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[d]));
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // Math formatting: draw √ and ∛ with an overline that spans the radicand.  √(a+b) → bar over "a+b";  √49, 2√3, √0,09, √x² → bar over the token.
 const RAD_TOKEN = String.raw`(?:\d+(?:[,.]\d+)?|[a-zA-Z])(?:[²³])?`;
@@ -38,7 +38,8 @@ const mf = (s) => {
     try { return window.katex.renderToString(seg, { throwOnError: false, output: "html" }); } catch { return esc(seg); }
   }).join("");
 };
-const LETTERS = ["ក", "ខ", "គ", "ឃ"];
+const LETTERS_KM = ["ក", "ខ", "គ", "ឃ"], LETTERS_EN = ["A", "B", "C", "D"];
+const LETTERS = new Proxy([], { get: (_, k) => (S.uiLang === "en" ? LETTERS_EN : LETTERS_KM)[k] });
 const pct = (s, t) => (t ? Math.round((100 * s) / t) : 0);
 const pointsOf = (a) => (a.points != null ? a.points : pct(a.score, a.total));   // older attempts had no points field → % correct
 const WEIGHT = { 1: 1, 2: 2, 3: 3 };          // relative weight of easy / medium / hard
@@ -63,7 +64,7 @@ function assignPoints(qs) {
   for (let k = 0; rem > 0; k = (k + 1) % order.length) { pts[order[k]]++; rem--; }
   return pts;
 }
-const secs = (ms) => km((ms / 1000).toFixed(1).replace(".", ",")) + " វិ";
+const secs = (ms) => km(S.uiLang === "en" ? (ms / 1000).toFixed(1) : (ms / 1000).toFixed(1).replace(".", ",")) + " វិ";
 const mins = (ms) => { const s = Math.round(ms / 1000); return s < 60 ? km(s) + " វិ" : `${km(Math.floor(s / 60))} នាទី ${km(s % 60)} វិ`; };
 const fmtDate = (ms) => { const d = new Date(ms); return km(`${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`); };
 const subjectOf = (id) => SUBJECTS.find((s) => s.id === id);
@@ -83,12 +84,13 @@ if (configured) {
 }
 
 /* ---------- state ---------- */
-const S = { user: null, profile: null, isAdmin: false, attempts: null, quiz: null, admin: { tab: "students", students: null, sel: null, attempts: {}, view: null } };
+const S = { user: null, profile: null, isAdmin: false, attempts: null, quiz: null, uiLang: "km", kids: false, admin: { tab: "students", students: null, sel: null, attempts: {}, view: null } };
 
 /* ---------- boot ---------- */
 if (!configured) renderSetupNeeded();
 else onAuthStateChanged(auth, async (user) => {
   S.user = user; S.profile = null; S.attempts = null; S.quiz = null;
+  S.uiLang = "km"; S.kids = false; document.body.classList.remove("kids");
   if (!user) { renderLogin(); return; }
   S.isAdmin = (user.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
   if (S.isAdmin) { renderAdmin(); return; }
@@ -100,10 +102,58 @@ else onAuthStateChanged(auth, async (user) => {
     return;
   }
   S.profile = snap.data();
+  S.uiLang = S.profile.lang === "en" ? "en" : "km";
+  document.documentElement.lang = S.uiLang;
   renderStudentHome();
 });
 
 function nav(html) { topnav.innerHTML = html; }
+
+/* ---------- English interface for students with lang = "en" ----------
+   Student screens are written in Khmer; when the student's profile says lang "en", the text nodes are
+   translated after each render (longest phrases first). Numbers are already Arabic in that mode (see km). */
+const EN = [
+  ["សិស្ស៖ វាយឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់ដែលអ្នកគ្រប់គ្រងបានផ្តល់ឲ្យ។", "Students: type the username and password your teacher gave you."],
+  ["ជ្រើសរើសមុខវិជ្ជា រួចជ្រើសរើសមេរៀន/ជំពូកដែលចង់អនុវត្ត។ ចម្លើយត្រឹមត្រូវបង្ហាញបន្ទាប់ពីដាក់ស្នើប៉ុណ្ណោះ។", "Pick a subject, then pick a chapter to practise. The answers are shown after you finish."],
+  ["សំណួរត្រូវបានចាប់យកដោយចៃដន្យពីធនាគារ ដូច្នេះការធ្វើម្តងទៀតនឹងបានសំណួរខុសគ្នា។ ជ្រើសរើសចម្លើយមួយក្នុងចំណោមបួន។ សំណួរពិបាកមានពិន្ទុច្រើនជាង (ងាយ ១ : មធ្យម ២ : ពិបាក ៣) សរុប ១០០ ពិន្ទុ។ អ្នកអាចត្រឡប់ទៅកែចម្លើយបាន មុនពេលដាក់ស្នើ។", "The questions are picked at random, so every try is different. Choose one of the four answers. Harder questions are worth more points (easy 1 : medium 2 : hard 3), 100 points in total. You can go back and change an answer before you finish."],
+  ["ពេលវេលាដែលចំណាយលើសំណួរនីមួយៗត្រូវបានកត់ត្រា ប៉ុន្តែគ្មានការកំណត់ពេលទេ។ ចម្លើយត្រឹមត្រូវ និងការពន្យល់ បង្ហាញបន្ទាប់ពីដាក់ស្នើ។", "The time you spend on each question is recorded, but there is no time limit. The correct answers and explanations are shown after you finish."],
+  ["បោះបង់ការធ្វើតេស្តនេះ? ចម្លើយនឹងមិនត្រូវបានរក្សាទុកទេ។", "Stop this quiz? Your answers will not be saved."],
+  ["ដាក់ស្នើឥឡូវនេះ? បន្ទាប់ពីដាក់ស្នើ មិនអាចកែចម្លើយបានទេ។", "Finish now? You cannot change answers afterwards."],
+  ["ក្រុមនីមួយៗជ្រើសរើសចម្លើយមួយ រួចចុច «បង្ហាញចម្លើយ»", ""],
+  ["លទ្ធផលមិនត្រូវបានរក្សាទុកទេ (", "The result could not be saved ("], ["។ សូមថតអេក្រង់ទុក។", "). Please take a screenshot."],
+  ["។ ពណ៌បៃតង = ត្រឹមត្រូវ, ក្រហម = ខុស ឬមិនបានឆ្លើយ។", ". Green = correct, red = wrong or not answered."],
+  ["សំណួរដែលចំណាយពេលយូរបំផុត៖ ទី", "Slowest question: number "],
+  ["មិនទាន់មានការធ្វើតេស្តទេ។", "No quizzes yet."], ["ប្រវត្តិការធ្វើតេស្ត", "My quiz history"],
+  ["ឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។", "Wrong username or password."],
+  ["សូមចាកចេញ ហើយចូលម្តងទៀត រួចព្យាយាមម្តងទៀត។", "Please log out, log in again and retry."],
+  ["បានប្តូរពាក្យសម្ងាត់រួចរាល់។", "Password changed."], ["ពាក្យសម្ងាត់ថ្មី (យ៉ាងតិច ៦ តួ)", "New password (at least 6 characters)"],
+  ["កំពុងរក្សាទុកលទ្ធផល…", "Saving your result…"], ["កំពុងទាញ…", "Loading…"],
+  ["សំណួរក្នុងតេស្តម្តង", "questions in this quiz"], ["សំណួរក្នុងធនាគារ (", "questions in the bank ("], ["ពិន្ទុសរុប", "total points"],
+  ["ពិន្ទុ · ត្រឹមត្រូវ ", "points · correct "], ["មធ្យម / សំណួរ", "average / question"], ["ពេលសរុប", "total time"],
+  ["សំណួរមិនទាន់ឆ្លើយ។ ", "unanswered. "], ["· បានឆ្លើយ ", "· answered "], ["សំណួរទី ", "Question "],
+  ["(ចម្លើយរបស់អ្នក)", "(your answer)"], ["មិនបានឆ្លើយ", "Not answered"], ["ការពន្យល់៖", "Explanation:"],
+  ["បើកឲ្យអនុវត្ត", " open"], ["មិនទាន់មានសំណួរ", "No questions yet"], ["មិនទាន់បើក", "Not open yet"], ["មិនទាន់ធ្វើ", "Not tried yet"],
+  ["បានធ្វើ ", "Tried "], [" ដង", " time(s)"], ["ល្អបំផុត ", "Best "], ["នៅសល់ ", "Still "],
+  ["ប្តូរពាក្យសម្ងាត់", "Change password"], ["ឈ្មោះអ្នកប្រើ ឬអ៊ីមែល", "Username or e-mail"], ["ឈ្មោះអ្នកប្រើ", "Username"], ["ពាក្យសម្ងាត់", "Password"],
+  ["ចូលប្រើប្រាស់", "Log in"], ["ចាកចេញ", "Log out"], ["ប្រវត្តិ", "History"], ["សួស្តី ", "Hello "],
+  ["របៀបធ្វើ៖", "How it works:"], ["ចាប់ផ្តើម", "Start"], ["ត្រឡប់", "Back"], ["បោះបង់", "Quit"],
+  ["បាទ/ចាស បោះបង់", "Yes, quit"], ["បន្តធ្វើ", "Keep going"], ["ដាក់ស្នើ", "Finish"], ["បន្ទាប់", "Next"], ["មុន", "Previous"],
+  ["ធ្វើម្តងទៀត", "Try again"], ["រក្សាទុក", "Save"], ["លទ្ធផល", "Result"], [" របស់ ", " for "],
+  ["កាលបរិច្ឆេទ", "Date"], ["មុខវិជ្ជា", "Subject"], ["មេរៀន/ជំពូក", "Chapter"], ["ពិន្ទុ", "points"], ["ពេល", "time"],
+  ["ងាយ", "easy"], ["មធ្យម", "medium"], ["ពិបាក", "hard"], ["សំណួរ", "questions"],
+  [" វិ", " s"], [" នាទី ", " min "], ["១០០", "100"],
+].filter(([k, v]) => v).sort((a, b) => b[0].length - a[0].length);
+function translateNode(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const n of nodes) {
+    if (!/[\u1780-\u17FF]/.test(n.nodeValue)) continue;
+    let v = n.nodeValue; for (const [kh, en] of EN) v = v.split(kh).join(en); n.nodeValue = v;
+  }
+  root.querySelectorAll?.("[placeholder],[title]").forEach((el) => { for (const at of ["placeholder", "title"]) { const v = el.getAttribute(at); if (v && /[\u1780-\u17FF]/.test(v)) { let t = v; for (const [kh, en] of EN) t = t.split(kh).join(en); el.setAttribute(at, t); } } });
+}
+new MutationObserver((muts) => { if (S.uiLang !== "en" || S.isAdmin) return; for (const m of muts) m.addedNodes.forEach((n) => { if (n.nodeType === 1) translateNode(n); else if (n.nodeType === 3) translateNode(n.parentNode); }); })
+  .observe(document.body, { childList: true, subtree: true });
 const logoutBtn = () => `<button class="btn ghost sm" id="logout">ចាកចេញ</button>`;
 document.addEventListener("click", (e) => { if (e.target.closest("#logout")) signOut(auth); });
 
@@ -129,9 +179,9 @@ function renderLogin(err) {
     <p class="muted small">សិស្ស៖ វាយឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់ដែលអ្នកគ្រប់គ្រងបានផ្តល់ឲ្យ។</p>
     ${err ? `<div class="notice bad">${esc(err)}</div>` : ""}
     <form id="loginForm" class="field" style="gap:12px">
-      <div class="field"><label for="lu">ឈ្មោះអ្នកប្រើ ឬអ៊ីមែល</label><input id="lu" autocomplete="username" required autocapitalize="off"></div>
-      <div class="field"><label for="lp">ពាក្យសម្ងាត់</label><input id="lp" type="password" autocomplete="current-password" required></div>
-      <button class="btn primary" id="loginBtn">ចូល</button>
+      <div class="field"><label for="lu">ឈ្មោះអ្នកប្រើ ឬអ៊ីមែល · Username</label><input id="lu" autocomplete="username" required autocapitalize="off"></div>
+      <div class="field"><label for="lp">ពាក្យសម្ងាត់ · Password</label><input id="lp" type="password" autocomplete="current-password" required></div>
+      <button class="btn primary" id="loginBtn">ចូល · Log in</button>
     </form>
     <p class="muted small">មិនមានគណនី? <a href="general.html">លេងល្បែងចំណេះដឹងទូទៅ</a> ដោយមិនចាំបាច់ចូល។</p>
   </div>`;
@@ -157,6 +207,7 @@ async function myAttempts() {
 const allowedSet = () => new Set(S.profile?.allowed || []);
 
 async function renderStudentHome() {
+  S.kids = false; document.body.classList.remove("kids");
   nav(`<span class="who">${esc(S.profile.displayName || S.profile.username)}</span><button class="btn ghost sm" id="histBtn">ប្រវត្តិ</button><button class="btn ghost sm" id="pwBtn">ប្តូរពាក្យសម្ងាត់</button>${logoutBtn()}`);
   const allowed = allowedSet();
   const attempts = await myAttempts();
@@ -178,6 +229,7 @@ async function renderStudentHome() {
 
 async function renderChapterList(subjId) {
   const s = subjectOf(subjId), allowed = allowedSet(), attempts = await myAttempts();
+  S.kids = !!s.kids; document.body.classList.toggle("kids", S.kids);
   app.innerHTML = `<div class="card">
     <div class="row between"><h1 style="color:${s.color}">${esc(s.name)}</h1><button class="btn ghost sm" id="back">← ត្រឡប់</button></div>
     <div class="chapters">${s.chapters.map((c) => {
@@ -403,7 +455,8 @@ function permPanel(u) {
   const allowed = new Set(u.allowed || []);
   return `<div style="display:grid;gap:12px">
     <div class="row between"><h2>${esc(u.displayName || u.username)} <span class="muted small">@${esc(u.username)}</span></h2>
-      <label class="row small"><input type="checkbox" id="active" ${u.active === false ? "" : "checked"}> គណនីសកម្ម</label></div>
+      <span class="row small"><label class="row small"><input type="checkbox" id="active" ${u.active === false ? "" : "checked"}> គណនីសកម្ម</label>
+      <label class="row small">ភាសាអេក្រង់ <select id="ulang"><option value="km" ${u.lang === "en" ? "" : "selected"}>ខ្មែរ</option><option value="en" ${u.lang === "en" ? "selected" : ""}>English</option></select></label></span></div>
     <p class="muted small">ធីកមេរៀន/ជំពូកដែលសិស្សអាចធ្វើបាន។ ជំពូកដែលមិនទាន់មានសំណួរ បង្ហាញស្រអាប់។</p>
     ${SUBJECTS.map((s) => `<div class="subjhead"><h3 style="color:${s.color}">${esc(s.name)}</h3><span class="row"><button class="btn ghost sm" data-all="${s.id}">ទាំងអស់</button><button class="btn ghost sm" data-none="${s.id}">គ្មាន</button></span></div>
       <div class="checks">${s.chapters.map((c) => `<label class="check ${c.bank ? "" : "no"}"><input type="checkbox" data-ch="${c.id}" data-s="${s.id}" ${allowed.has(c.id) ? "checked" : ""} ${c.bank ? "" : "disabled"}><span>${unitOf(s, c)}៖ ${esc(c.title)}${c.bank ? "" : " <span class='muted small'>(មិនទាន់មានសំណួរ)</span>"}</span></label>`).join("")}</div>`).join("")}
@@ -416,11 +469,11 @@ function wirePermPanel(u, students) {
   perm.querySelectorAll("[data-none]").forEach((b) => b.addEventListener("click", () => perm.querySelectorAll(`[data-s="${b.dataset.none}"]`).forEach((c) => (c.checked = false))));
   $("savePerm").addEventListener("click", async () => {
     const allowed = [...perm.querySelectorAll("[data-ch]:checked")].map((c) => c.dataset.ch);
-    const active = $("active").checked;
+    const active = $("active").checked, lang = $("ulang").value;
     $("savePerm").disabled = true;
     try {
-      await updateDoc(doc(db, "users", u.uid), { allowed, active });
-      u.allowed = allowed; u.active = active;
+      await updateDoc(doc(db, "users", u.uid), { allowed, active, lang });
+      u.allowed = allowed; u.active = active; u.lang = lang;
       S.admin.permSaved = true;
       renderAdminStudents(students);
       S.admin.permSaved = false;
