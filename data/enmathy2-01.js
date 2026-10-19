@@ -22,8 +22,8 @@ export default {
       ex: "Add $100$ each time. $520 + 100 = 620$. Only the hundreds digit changes." },
     { lv: 2, q: "Mia counts backwards by twos from $41$: $41, 39, 37, \\ldots$ What does she say next?", o: ["$36$", "$34$", "$35$", "$33$"], a: 2,
       ex: "Take away $2$ each time. $37 - 2 = 35$." },
-    { lv: 3, q: "Jack counts by fives starting at $3$: $3, 8, 13, 18, \\ldots$ Which number will he say?", o: ["$30$", "$25$", "$33$", "$40$"], a: 2,
-      ex: "Keep adding $5$: $18, 23, 28, 33$. Jack's numbers all end in $3$ or $8$, so he says $33$." },
+    { lv: 3, q: "Jack counts by fives starting at $3$: $3, 8, 13, 18, 23, \\ldots$ Which one of these numbers will Jack say if he keeps counting?", o: ["$30$", "$25$", "$33$", "$40$"], a: 2,
+      ex: "Keep adding $5$: $23, 28, 33$. Jack's numbers all end in $3$ or $8$. Of the four choices, only $33$ ends in $3$ or $8$, so he says $33$." },
     { lv: 3, q: "Zara counts backwards by hundreds from $850$: $850, 750, 650, \\ldots$ Which number will she say?", o: ["$500$", "$550$", "$600$", "$450$"], a: 1,
       ex: "Take away $100$ each time: $650, 550, 450$. The numbers all end in $50$, so she says $550$." },
 

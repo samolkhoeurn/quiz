@@ -4,8 +4,8 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=11";
-import { SUBJECTS, LEVELS } from "./data/subjects.js?v=11";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=13";
+import { SUBJECTS, LEVELS } from "./data/subjects.js?v=13";
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
@@ -39,7 +39,7 @@ const mf = (s) => {
   }).join("");
 };
 const LETTERS_KM = ["ក", "ខ", "គ", "ឃ"], LETTERS_EN = ["A", "B", "C", "D"];
-const LETTERS = new Proxy([], { get: (_, k) => (S.uiLang === "en" ? LETTERS_EN : LETTERS_KM)[k] });
+const LETTERS = new Proxy([], { get: (_, k) => (S.uiLang === "en" || S.quizLang === "en" ? LETTERS_EN : LETTERS_KM)[k] });
 const pct = (s, t) => (t ? Math.round((100 * s) / t) : 0);
 const pointsOf = (a) => (a.points != null ? a.points : pct(a.score, a.total));   // older attempts had no points field → % correct
 const WEIGHT = { 1: 1, 2: 2, 3: 3 };          // relative weight of easy / medium / hard
@@ -68,12 +68,13 @@ const secs = (ms) => km(S.uiLang === "en" ? (ms / 1000).toFixed(1) : (ms / 1000)
 const mins = (ms) => { const s = Math.round(ms / 1000); return s < 60 ? km(s) + " វិ" : `${km(Math.floor(s / 60))} នាទី ${km(s % 60)} វិ`; };
 const fmtDate = (ms) => { const d = new Date(ms); return km(`${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`); };
 const subjectOf = (id) => SUBJECTS.find((s) => s.id === id);
+const sName = (s) => (S.uiLang === "en" && s.lang !== "en" && s.en ? s.en : s.name);
 const unitOf = (s, c) => (s.lang === "en" ? `${s.unit} ${c.n}` : `${s.unit}ទី${km(c.n)}`);   // "Chapter 3" vs "មេរៀនទី៣"
 const chapterOf = (bankId) => { for (const s of SUBJECTS) { const c = s.chapters.find((c) => c.id === bankId); if (c) return { s, c }; } return null; };
 const ALL_BANKS = SUBJECTS.flatMap((s) => s.chapters.filter((c) => c.bank).map((c) => c.id));
 const studentEmail = (u) => `${u.trim().toLowerCase()}@${STUDENT_EMAIL_DOMAIN}`;
 const bankCache = {};
-async function loadBank(id) { if (!bankCache[id]) bankCache[id] = (await import(`./data/${id}.js?v=11`)).default; return bankCache[id]; }
+async function loadBank(id) { if (!bankCache[id]) bankCache[id] = (await import(`./data/${id}.js?v=13`)).default; return bankCache[id]; }
 
 /* ---------- firebase ---------- */
 const configured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE");
@@ -84,7 +85,7 @@ if (configured) {
 }
 
 /* ---------- state ---------- */
-const S = { user: null, profile: null, isAdmin: false, attempts: null, quiz: null, uiLang: "km", kids: false, admin: { tab: "students", students: null, sel: null, attempts: {}, view: null } };
+const S = { user: null, profile: null, isAdmin: false, attempts: null, quiz: null, uiLang: "km", quizLang: "km", kids: false, admin: { tab: "students", students: null, sel: null, attempts: {}, view: null } };
 
 /* ---------- boot ---------- */
 if (!configured) renderSetupNeeded();
@@ -104,6 +105,7 @@ else onAuthStateChanged(auth, async (user) => {
   S.profile = snap.data();
   S.uiLang = S.profile.lang === "en" ? "en" : "km";
   document.documentElement.lang = S.uiLang;
+  if (S.uiLang === "en") translateNode(document.body);
   renderStudentHome();
 });
 
@@ -113,6 +115,8 @@ function nav(html) { topnav.innerHTML = html; }
    Student screens are written in Khmer; when the student's profile says lang "en", the text nodes are
    translated after each render (longest phrases first). Numbers are already Arabic in that mode (see km). */
 const EN = [
+  ["កម្រងសំណួរសិក្សា", "Study Quizzes"], ["ខ្មែរ · អូស្ត្រាលី", "Khmer · Australian"],
+  ["ល្បែងចំណេះដឹងទូទៅ ក្រុម A និង B →", "General-knowledge team game →"], ["សំណួរតាមកម្មវិធីសិក្សាកម្ពុជា និងអូស្ត្រាលី", "Questions following the Cambodian and Australian curricula"],
   ["សិស្ស៖ វាយឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់ដែលអ្នកគ្រប់គ្រងបានផ្តល់ឲ្យ។", "Students: type the username and password your teacher gave you."],
   ["ជ្រើសរើសមុខវិជ្ជា រួចជ្រើសរើសមេរៀន/ជំពូកដែលចង់អនុវត្ត។ ចម្លើយត្រឹមត្រូវបង្ហាញបន្ទាប់ពីដាក់ស្នើប៉ុណ្ណោះ។", "Pick a subject, then pick a chapter to practise. The answers are shown after you finish."],
   ["សំណួរត្រូវបានចាប់យកដោយចៃដន្យពីធនាគារ ដូច្នេះការធ្វើម្តងទៀតនឹងបានសំណួរខុសគ្នា។ ជ្រើសរើសចម្លើយមួយក្នុងចំណោមបួន។ សំណួរពិបាកមានពិន្ទុច្រើនជាង (ងាយ ១ : មធ្យម ២ : ពិបាក ៣) សរុប ១០០ ពិន្ទុ។ អ្នកអាចត្រឡប់ទៅកែចម្លើយបាន មុនពេលដាក់ស្នើ។", "The questions are picked at random, so every try is different. Choose one of the four answers. Harder questions are worth more points (easy 1 : medium 2 : hard 3), 100 points in total. You can go back and change an answer before you finish."],
@@ -218,7 +222,7 @@ async function renderStudentHome() {
       const n = s.chapters.filter((c) => allowed.has(c.id) && c.bank).length;
       const done = attempts.filter((a) => a.subject === s.id).length;
       return `<button class="subject" style="--sc:${s.color}" data-subj="${s.id}" ${n ? "" : "disabled"}>
-        <span class="name">${esc(s.name)}</span><span class="cnt">${n ? (s.lang === "en" ? `${n} ${s.unit.toLowerCase()}${n > 1 ? "s" : ""} open` : `${km(n)} ${s.unit}បើកឲ្យអនុវត្ត`) : "មិនទាន់បើក"}</span>
+        <span class="name">${esc(sName(s))}</span><span class="cnt">${n ? (s.lang === "en" ? `${n} ${s.unit.toLowerCase()}${n > 1 ? "s" : ""} open` : `${km(n)} ${s.unit}បើកឲ្យអនុវត្ត`) : "មិនទាន់បើក"}</span>
         <span class="cnt">${done ? `បានធ្វើ ${km(done)} ដង` : ""}</span></button>`;
     }).join("")}</div>
   </div>`;
@@ -231,7 +235,7 @@ async function renderChapterList(subjId) {
   const s = subjectOf(subjId), allowed = allowedSet(), attempts = await myAttempts();
   S.kids = !!s.kids; document.body.classList.toggle("kids", S.kids);
   app.innerHTML = `<div class="card">
-    <div class="row between"><h1 style="color:${s.color}">${esc(s.name)}</h1><button class="btn ghost sm" id="back">← ត្រឡប់</button></div>
+    <div class="row between"><h1 style="color:${s.color}">${esc(sName(s))}</h1><button class="btn ghost sm" id="back">← ត្រឡប់</button></div>
     <div class="chapters">${s.chapters.map((c) => {
       const open = allowed.has(c.id) && c.bank;
       const mine = attempts.filter((a) => a.bankId === c.id);
@@ -247,9 +251,10 @@ async function renderChapterList(subjId) {
 
 async function renderQuizIntro(bankId) {
   const bank = await loadBank(bankId), { s, c } = chapterOf(bankId);
+  S.quizLang = s.lang === "en" ? "en" : "km";
   const n = bank.questions.length, size = Math.min(bank.quizSize || QUIZ_SIZE, n), lv = [1, 2, 3].map((l) => bank.questions.filter((q) => q.lv === l).length);
   app.innerHTML = `<div class="card">
-    <div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(s.name)}</span><span class="chip">${unitOf(s, c)}</span></div>
+    <div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(sName(s))}</span><span class="chip">${unitOf(s, c)}</span></div>
     <h1>${esc(bank.title)}</h1>
     <div class="stats">
       <div class="stat"><div class="v">${km(size)}</div><div class="l">សំណួរក្នុងតេស្តម្តង</div></div>
@@ -330,6 +335,7 @@ async function submitQuiz() {
   app.innerHTML = `<div class="card center"><p class="muted">កំពុងរក្សាទុកលទ្ធផល…</p></div>`;
   try { const ref = await addDoc(collection(db, "attempts"), attempt); attempt.id = ref.id; S.attempts = null; }
   catch (ex) { attempt.saveError = ex.code || String(ex); }
+  S.celebrate = true;
   renderResult(attempt, bank, () => renderStudentHome());
 }
 
@@ -337,12 +343,13 @@ async function submitQuiz() {
 async function renderResult(attempt, bank, back, who) {
   bank = bank || (await loadBank(attempt.bankId));
   const { s, c } = chapterOf(attempt.bankId);
+  S.quizLang = s.lang === "en" ? "en" : "km";
   const p = pointsOf(attempt);
   const byLv = [1, 2, 3].map((l) => { const as = attempt.answers.filter((a) => a.lv === l); return { l, c: as.filter((a) => a.correct).length, t: as.length }; });
   const slowest = [...attempt.answers].sort((a, b) => b.ms - a.ms)[0];
   nav(`${who ? `<span class="who">${esc(who)}</span>` : ""}${logoutBtn()}`);
   app.innerHTML = `<div class="card">
-    <div class="row between"><div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(s.name)}</span><span class="chip">${unitOf(s, c)}</span><span class="chip">${fmtDate(attempt.finishedAt)}</span></div><button class="btn ghost sm" id="back">← ត្រឡប់</button></div>
+    <div class="row between"><div class="row"><span class="chip" style="border-color:${s.color};color:${s.color}">${esc(sName(s))}</span><span class="chip">${unitOf(s, c)}</span><span class="chip">${fmtDate(attempt.finishedAt)}</span></div><button class="btn ghost sm" id="back">← ត្រឡប់</button></div>
     <h1>${esc(bank.title)} — លទ្ធផល${attempt.displayName ? ` របស់ ${esc(attempt.displayName)}` : ""}</h1>
     ${attempt.saveError ? `<div class="notice bad">លទ្ធផលមិនត្រូវបានរក្សាទុកទេ (${esc(attempt.saveError)})។ សូមថតអេក្រង់ទុក។</div>` : ""}
     <div class="stats">
@@ -357,15 +364,16 @@ async function renderResult(attempt, bank, back, who) {
       const q = bank.questions[a.i];
       return `<section id="q${i + 1}" style="display:grid;gap:8px">
         <div class="row between"><strong>${km(i + 1)}. ${mf(q.q)}</strong><span class="row"><span class="chip lv${q.lv}">${LEVELS[q.lv]}</span>${a.pts != null ? `<span class="chip pts">${a.correct ? "+" : ""}${km(a.correct ? a.pts : 0)} / ${km(a.pts)}</span>` : ""}<span class="chip">${secs(a.ms)}</span></span></div>
-        <div class="opts">${q.o.map((t, k) => `<div class="opt ${k === q.a ? "right" : a.chosen === k ? "wrong" : ""}"><span class="k">${LETTERS[k]}</span><span>${mf(t)}${k === q.a ? " ✓" : ""}${a.chosen === k && k !== q.a ? " ✗ (ចម្លើយរបស់អ្នក)" : ""}</span></div>`).join("")}</div>
+        <div class="opts">${q.o.map((t, k) => `<div class="opt ${k === q.a ? "right" : a.chosen === k ? "wrong" : ""}"><span class="k">${LETTERS[k]}</span><span>${mf(t)}${k === q.a ? " ✓" : ""}${a.chosen === k && k !== q.a ? (S.quizLang === "en" ? " ✗ (your answer)" : " ✗ (ចម្លើយរបស់អ្នក)") : ""}</span></div>`).join("")}</div>
         ${a.chosen == null ? `<div class="bad-text small">មិនបានឆ្លើយ</div>` : ""}
-        ${q.ex ? `<div class="explain"><strong>ការពន្យល់៖</strong> ${mf(q.ex)}</div>` : ""}
+        ${q.ex ? `<div class="explain"><strong>${S.quizLang === "en" ? "Explanation:" : "ការពន្យល់៖"}</strong> ${mf(q.ex)}</div>` : ""}
       </section>`;
     }).join("")}</div>
     <div class="row between"><button class="btn ghost" id="back2">← ត្រឡប់</button>${who ? "" : `<button class="btn primary" id="again">ធ្វើម្តងទៀត</button>`}</div>
   </div>`;
   $("back").addEventListener("click", back); $("back2").addEventListener("click", back);
   $("again")?.addEventListener("click", () => renderQuizIntro(attempt.bankId));
+  if (S.celebrate) { S.celebrate = false; celebrate(p, attempt); }
 }
 
 async function renderHistory() {
@@ -374,7 +382,7 @@ async function renderHistory() {
   app.innerHTML = `<div class="card">
     <div class="row between"><h1>ប្រវត្តិការធ្វើតេស្ត</h1><button class="btn ghost sm" id="back">← ត្រឡប់</button></div>
     ${attempts.length ? `<div class="tablewrap"><table><thead><tr><th>កាលបរិច្ឆេទ</th><th>មុខវិជ្ជា</th><th>មេរៀន/ជំពូក</th><th class="num">ពិន្ទុ</th><th class="num">ពេល</th></tr></thead><tbody>
-      ${attempts.map((a) => `<tr class="clickable" data-id="${a.id}"><td>${fmtDate(a.finishedAt)}</td><td>${esc(subjectOf(a.subject)?.name)}</td><td>${esc(a.title)}</td><td class="num ${pointsOf(a) >= 50 ? "ok-text" : "bad-text"}">${km(pointsOf(a))} / ១០០ <span class="muted small">(${km(a.score)}/${km(a.total)})</span></td><td class="num">${mins(a.totalMs)}</td></tr>`).join("")}
+      ${attempts.map((a) => `<tr class="clickable" data-id="${a.id}"><td>${fmtDate(a.finishedAt)}</td><td>${esc(sName(subjectOf(a.subject) || {}))}</td><td>${esc(a.title)}</td><td class="num ${pointsOf(a) >= 50 ? "ok-text" : "bad-text"}">${km(pointsOf(a))} / ១០០ <span class="muted small">(${km(a.score)}/${km(a.total)})</span></td><td class="num">${mins(a.totalMs)}</td></tr>`).join("")}
     </tbody></table></div>` : `<p class="muted">មិនទាន់មានការធ្វើតេស្តទេ។</p>`}
   </div>`;
   $("back").addEventListener("click", renderStudentHome);
@@ -395,6 +403,42 @@ function renderChangePassword(msg) {
     try { await updatePassword(S.user, $("np").value); renderChangePassword({ ok: true, text: "បានប្តូរពាក្យសម្ងាត់រួចរាល់។" }); }
     catch (ex) { renderChangePassword({ ok: false, text: ex.code === "auth/requires-recent-login" ? "សូមចាកចេញ ហើយចូលម្តងទៀត រួចព្យាយាមម្តងទៀត។" : "បរាជ័យ៖ " + ex.code }); }
   });
+}
+
+/* ---------- celebration: fireworks for a perfect 100, a cheer for 80+ ---------- */
+function celebrate(points, attempt) {
+  const en = S.uiLang === "en" || S.quizLang === "en";
+  const name = esc(attempt.displayName || "");
+  let title, text;
+  if (points === 100) { title = en ? "Perfect score!" : "ពិន្ទុពេញ!"; text = en ? `Amazing, ${name}! 100 out of 100 — every answer right.` : `អស្ចារ្យណាស់ ${name}! ១០០ លើ ១០០ — ត្រឹមត្រូវទាំងអស់។`; }
+  else if (points >= 80) { title = en ? "Great work!" : "ល្អណាស់!"; text = en ? `${name}, that's ${points} out of 100. Keep it up!` : `${name} បាន ${km(points)} លើ ១០០ — បន្តខិតខំទៀត!`; }
+  else return;
+  const card = app.querySelector(".card");
+  const banner = document.createElement("div");
+  banner.className = "cheer" + (points === 100 ? " gold" : "");
+  banner.innerHTML = `<div class="cheer-title">${points === 100 ? "🎆 " : "⭐ "}${title}</div><div>${text}</div>`;
+  card.insertBefore(banner, card.children[1]);
+  if (points === 100 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) fireworks(7000);
+}
+function fireworks(duration) {
+  const cv = document.createElement("canvas"); cv.className = "fireworks"; document.body.appendChild(cv);
+  const ctx = cv.getContext("2d"); let W, H; const fit = () => { W = cv.width = innerWidth * devicePixelRatio; H = cv.height = innerHeight * devicePixelRatio; }; fit(); addEventListener("resize", fit);
+  const rockets = [], sparks = [], hues = [45, 350, 200, 120, 280, 20];
+  const launch = () => rockets.push({ x: W * (0.15 + 0.7 * Math.random()), y: H, vx: (Math.random() - 0.5) * 2 * devicePixelRatio, vy: -(9 + Math.random() * 4) * devicePixelRatio * (H / 900 / devicePixelRatio + 0.6), hue: hues[Math.floor(Math.random() * hues.length)], fuse: 55 + Math.random() * 25 });
+  const burst = (r) => { const n = 90 + Math.random() * 50; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + Math.random() * 0.1, sp = (2 + Math.random() * 4) * devicePixelRatio; sparks.push({ x: r.x, y: r.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, hue: r.hue + (Math.random() * 30 - 15), life: 1, decay: 0.012 + Math.random() * 0.012, size: (1.2 + Math.random() * 1.6) * devicePixelRatio }); } };
+  for (let i = 0; i < 3; i++) burst({ x: W * (0.2 + 0.6 * Math.random()), y: H * (0.2 + 0.3 * Math.random()), hue: hues[i * 2] });   // instant opening bursts
+  const t0 = performance.now(); let last = 0, stop = false;
+  function frame(t) {
+    if (stop) return;
+    ctx.globalCompositeOperation = "destination-out"; ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = "lighter";
+    if (t - t0 < duration - 1800 && t - last > 330) { launch(); if (Math.random() < 0.6) launch(); last = t; }
+    for (let i = rockets.length - 1; i >= 0; i--) { const r = rockets[i]; r.x += r.vx; r.y += r.vy; r.vy += 0.12 * devicePixelRatio; r.fuse--; ctx.fillStyle = `hsl(${r.hue} 100% 70%)`; ctx.beginPath(); ctx.arc(r.x, r.y, 2.2 * devicePixelRatio, 0, 7); ctx.fill(); if (r.fuse <= 0 || r.vy > -1) { burst(r); rockets.splice(i, 1); } }
+    for (let i = sparks.length - 1; i >= 0; i--) { const p = sparks[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.05 * devicePixelRatio; p.vx *= 0.985; p.vy *= 0.985; p.life -= p.decay; if (p.life <= 0) { sparks.splice(i, 1); continue; } ctx.fillStyle = `hsl(${p.hue} 100% ${55 + 35 * p.life}% / ${p.life})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, 7); ctx.fill(); }
+    if (t - t0 < duration || rockets.length || sparks.length) requestAnimationFrame(frame); else end();
+  }
+  const end = () => { stop = true; removeEventListener("resize", fit); cv.classList.add("out"); setTimeout(() => cv.remove(), 600); };
+  cv.addEventListener("click", end);
+  requestAnimationFrame(frame);
 }
 
 /* ======================================================================
@@ -458,7 +502,7 @@ function permPanel(u) {
       <span class="row small"><label class="row small"><input type="checkbox" id="active" ${u.active === false ? "" : "checked"}> គណនីសកម្ម</label>
       <label class="row small">ភាសាអេក្រង់ <select id="ulang"><option value="km" ${u.lang === "en" ? "" : "selected"}>ខ្មែរ</option><option value="en" ${u.lang === "en" ? "selected" : ""}>English</option></select></label></span></div>
     <p class="muted small">ធីកមេរៀន/ជំពូកដែលសិស្សអាចធ្វើបាន។ ជំពូកដែលមិនទាន់មានសំណួរ បង្ហាញស្រអាប់។</p>
-    ${SUBJECTS.map((s) => `<div class="subjhead"><h3 style="color:${s.color}">${esc(s.name)}</h3><span class="row"><button class="btn ghost sm" data-all="${s.id}">ទាំងអស់</button><button class="btn ghost sm" data-none="${s.id}">គ្មាន</button></span></div>
+    ${SUBJECTS.map((s) => `<div class="subjhead"><h3 style="color:${s.color}">${esc(sName(s))}</h3><span class="row"><button class="btn ghost sm" data-all="${s.id}">ទាំងអស់</button><button class="btn ghost sm" data-none="${s.id}">គ្មាន</button></span></div>
       <div class="checks">${s.chapters.map((c) => `<label class="check ${c.bank ? "" : "no"}"><input type="checkbox" data-ch="${c.id}" data-s="${s.id}" ${allowed.has(c.id) ? "checked" : ""} ${c.bank ? "" : "disabled"}><span>${unitOf(s, c)}៖ ${esc(c.title)}${c.bank ? "" : " <span class='muted small'>(មិនទាន់មានសំណួរ)</span>"}</span></label>`).join("")}</div>`).join("")}
     <div class="row between"><span id="permMsg" class="small">${S.admin.permSaved ? `<span class="ok-text">បានរក្សាទុក ✓</span>` : ""}</span><button class="btn primary" id="savePerm">រក្សាទុកសិទ្ធិ</button></div>
   </div>`;
@@ -519,7 +563,7 @@ async function renderAdminReports(students) {
     const as = attempts.filter((a) => a.bankId === id); if (!as.length) return "";
     const { s, c } = chapterOf(id); const best = Math.max(...as.map((a) => pointsOf(a))); const last = as[0];
     const avgMs = as.reduce((x, a) => x + a.totalMs / a.total, 0) / as.length;
-    return `<tr><td><span style="color:${s.color};font-weight:600">${esc(s.name)}</span><br><span class="small">${unitOf(s, c)} ${esc(c.title)}</span></td><td class="num">${km(as.length)}</td><td class="num">${km(best)}</td><td class="num">${km(pointsOf(last))}</td><td><div class="bar"><i style="width:${pointsOf(last)}%"></i></div></td><td class="num">${secs(avgMs)}</td></tr>`;
+    return `<tr><td><span style="color:${s.color};font-weight:600">${esc(sName(s))}</span><br><span class="small">${unitOf(s, c)} ${esc(c.title)}</span></td><td class="num">${km(as.length)}</td><td class="num">${km(best)}</td><td class="num">${km(pointsOf(last))}</td><td><div class="bar"><i style="width:${pointsOf(last)}%"></i></div></td><td class="num">${secs(avgMs)}</td></tr>`;
   }).join("");
   // weak spots: questions wrong in latest attempt per bank
   const weak = [];
@@ -536,7 +580,7 @@ async function renderAdminReports(students) {
     <h2 style="margin-top:14px">តេស្តទាំងអស់ <span class="muted small">(ចុចដើម្បីមើលលម្អិតតាមសំណួរ និងពេលវេលា)</span></h2>
     <div class="tablewrap"><table><thead><tr><th>កាលបរិច្ឆេទ</th><th>មេរៀន/ជំពូក</th><th class="num">ពិន្ទុ</th><th class="num">ងាយ</th><th class="num">មធ្យម</th><th class="num">ពិបាក</th><th class="num">ពេល</th></tr></thead><tbody>
       ${attempts.map((a) => { const lv = (l) => { const x = a.answers.filter((z) => z.lv === l); return `${km(x.filter((z) => z.correct).length)}/${km(x.length)}`; };
-        return `<tr class="clickable" data-id="${a.id}"><td>${fmtDate(a.finishedAt)}</td><td>${esc(subjectOf(a.subject)?.name)} · ${esc(a.title)}</td><td class="num ${pointsOf(a) >= 50 ? "ok-text" : "bad-text"}">${km(pointsOf(a))} / ១០០ <span class="muted small">(${km(a.score)}/${km(a.total)})</span></td><td class="num">${lv(1)}</td><td class="num">${lv(2)}</td><td class="num">${lv(3)}</td><td class="num">${mins(a.totalMs)}</td></tr>`; }).join("")}
+        return `<tr class="clickable" data-id="${a.id}"><td>${fmtDate(a.finishedAt)}</td><td>${esc(sName(subjectOf(a.subject) || {}))} · ${esc(a.title)}</td><td class="num ${pointsOf(a) >= 50 ? "ok-text" : "bad-text"}">${km(pointsOf(a))} / ១០០ <span class="muted small">(${km(a.score)}/${km(a.total)})</span></td><td class="num">${lv(1)}</td><td class="num">${lv(2)}</td><td class="num">${lv(3)}</td><td class="num">${mins(a.totalMs)}</td></tr>`; }).join("")}
     </tbody></table></div>
     ${weak.length ? `<h2 style="margin-top:14px">សំណួរដែលខុសក្នុងតេស្តចុងក្រោយ (${km(weak.length)})</h2>
     <div class="tablewrap"><table><thead><tr><th>មេរៀន/ជំពូក</th><th>សំណួរ</th><th>កម្រិត</th><th class="num">ពេល</th></tr></thead><tbody>
@@ -551,7 +595,7 @@ async function renderAdminBanks() {
   for (const s of SUBJECTS) for (const c of s.chapters) {
     let n = "", lv = "";
     if (c.bank) { const b = await loadBank(c.id); n = km(b.questions.length); lv = [1, 2, 3].map((l) => km(b.questions.filter((q) => q.lv === l).length)).join(" / "); }
-    items.push(`<tr><td><span style="color:${s.color};font-weight:600">${esc(s.name)}</span></td><td>${unitOf(s, c)}៖ ${esc(c.title)}${c.sub ? `<br><span class="muted small">${esc(c.sub)}</span>` : ""}</td><td>${c.bank ? `<span class="ok-text">មាន</span>` : `<span class="muted">មិនទាន់</span>`}</td><td class="num">${n}</td><td class="num">${lv}</td></tr>`);
+    items.push(`<tr><td><span style="color:${s.color};font-weight:600">${esc(sName(s))}</span></td><td>${unitOf(s, c)}៖ ${esc(c.title)}${c.sub ? `<br><span class="muted small">${esc(c.sub)}</span>` : ""}</td><td>${c.bank ? `<span class="ok-text">មាន</span>` : `<span class="muted">មិនទាន់</span>`}</td><td class="num">${n}</td><td class="num">${lv}</td></tr>`);
   }
   body.innerHTML = `<div style="margin-top:14px;display:grid;gap:10px">
     <p class="muted small">សំណួររក្សាទុកក្នុងឯកសារ <code>data/&lt;id&gt;.js</code> ក្នុង repository ។ ដើម្បីបន្ថែមជំពូក៖ បន្ថែមឯកសារ រួចដាក់ <code>bank: true</code> ក្នុង <code>data/subjects.js</code> ហើយ push ។</p>

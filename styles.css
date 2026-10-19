@@ -147,3 +147,13 @@ body.kids .opt{font-size:1.2rem;padding:16px 18px}
 body.kids .opt .k{flex-basis:36px;height:36px;font-size:1rem}
 body.kids .katex{font-size:1.25em}
 body.kids .explain{font-size:1.05rem}
+
+/* celebration */
+.cheer{border-radius:14px;padding:14px 18px;background:var(--ok-soft);border:1px solid var(--ok);display:grid;gap:4px;animation:pop .5s ease}
+.cheer.gold{background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 22%,var(--panel)),var(--panel));border-color:var(--gold)}
+.cheer-title{font-family:var(--display);font-size:1.4rem;color:var(--gold);line-height:1.5}
+.cheer:not(.gold) .cheer-title{color:var(--ok)}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+.fireworks{position:fixed;inset:0;width:100%;height:100%;pointer-events:auto;z-index:50;transition:opacity .6s}
+.fireworks.out{opacity:0}
+@media (prefers-reduced-motion:reduce){.cheer{animation:none}}
