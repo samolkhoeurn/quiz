@@ -4,8 +4,8 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=16";
-import { SUBJECTS, LEVELS } from "./data/subjects.js?v=16";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=17";
+import { SUBJECTS, LEVELS } from "./data/subjects.js?v=17";
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
@@ -75,7 +75,7 @@ const ALL_BANKS = SUBJECTS.flatMap((s) => s.chapters.filter((c) => c.bank).map((
 const studentEmail = (u) => `${u.trim().toLowerCase()}@${STUDENT_EMAIL_DOMAIN}`;
 const bankCache = {};
 const fileBankCache = {};
-async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=16`)).default; return fileBankCache[id]; }
+async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=17`)).default; return fileBankCache[id]; }
 // A chapter edited online lives in Firestore (banks/{id}) and overrides the file version; otherwise the file is used.
 async function loadBank(id) {
   if (bankCache[id]) return bankCache[id];
@@ -125,7 +125,7 @@ function nav(html) { topnav.innerHTML = html; }
    translated after each render (longest phrases first). Numbers are already Arabic in that mode (see km). */
 const EN = [
   ["កម្រងសំណួរសិក្សា", "Study Quizzes"], ["ខ្មែរ · អូស្ត្រាលី", "Khmer · Australian"],
-  ["ល្បែងចំណេះដឹងទូទៅ ក្រុម A និង B →", "General-knowledge team game →"], ["សំណួរតាមកម្មវិធីសិក្សាកម្ពុជា និងអូស្ត្រាលី", "Questions following the Cambodian and Australian curricula"],
+  ["សំណួរតាមកម្មវិធីសិក្សាកម្ពុជា និងអូស្ត្រាលី", "Questions following the Cambodian and Australian curricula"],
   ["សិស្ស៖ វាយឈ្មោះអ្នកប្រើ និងពាក្យសម្ងាត់ដែលអ្នកគ្រប់គ្រងបានផ្តល់ឲ្យ។", "Students: type the username and password your teacher gave you."],
   ["ជ្រើសរើសមុខវិជ្ជា រួចជ្រើសរើសមេរៀន/ជំពូកដែលចង់អនុវត្ត។ ចម្លើយត្រឹមត្រូវបង្ហាញបន្ទាប់ពីដាក់ស្នើប៉ុណ្ណោះ។", "Pick a subject, then pick a chapter to practise. The answers are shown after you finish."],
   ["សំណួរត្រូវបានចាប់យកដោយចៃដន្យពីធនាគារ ដូច្នេះការធ្វើម្តងទៀតនឹងបានសំណួរខុសគ្នា។ ជ្រើសរើសចម្លើយមួយក្នុងចំណោមបួន។ សំណួរពិបាកមានពិន្ទុច្រើនជាង (ងាយ ១ : មធ្យម ២ : ពិបាក ៣) សរុប ១០០ ពិន្ទុ។ អ្នកអាចត្រឡប់ទៅកែចម្លើយបាន មុនពេលដាក់ស្នើ។", "The questions are picked at random, so every try is different. Choose one of the four answers. Harder questions are worth more points (easy 1 : medium 2 : hard 3), 100 points in total. You can go back and change an answer before you finish."],
@@ -196,7 +196,6 @@ function renderLogin(err) {
       <div class="field"><label for="lp">ពាក្យសម្ងាត់ · Password</label><input id="lp" type="password" autocomplete="current-password" required></div>
       <button class="btn primary" id="loginBtn">ចូល · Log in</button>
     </form>
-    <p class="muted small">មិនមានគណនី? <a href="general.html">លេងល្បែងចំណេះដឹងទូទៅ</a> ដោយមិនចាំបាច់ចូល។</p>
   </div>`;
   $("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
