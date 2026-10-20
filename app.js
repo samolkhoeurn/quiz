@@ -4,8 +4,8 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=18";
-import { SUBJECTS, LEVELS } from "./data/subjects.js?v=18";
+import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=19";
+import { SUBJECTS, LEVELS } from "./data/subjects.js?v=19";
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
@@ -75,7 +75,7 @@ const ALL_BANKS = SUBJECTS.flatMap((s) => s.chapters.filter((c) => c.bank).map((
 const studentEmail = (u) => `${u.trim().toLowerCase()}@${STUDENT_EMAIL_DOMAIN}`;
 const bankCache = {};
 const fileBankCache = {};
-async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=18`)).default; return fileBankCache[id]; }
+async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=19`)).default; return fileBankCache[id]; }
 // A chapter edited online lives in Firestore (banks/{id}) and overrides the file version; otherwise the file is used.
 // Exception: when the file carries a higher `rev` than the Firestore copy (a revised file was pushed), the file wins
 // until the admin updates the database from the question manager (button in the DB status line).

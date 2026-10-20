@@ -1,6 +1,6 @@
 # រៀនថ្នាក់ទី៩ · កម្រងសំណួរ
 
-Practice quizzes for a Cambodian grade 9 student: the four MoEYS subjects in Khmer (31 chapters), English *Mathematics (Year 9)* (14 chapters) and *Mathematics (Year 2)* (8 chapters) following the Australian Curriculum v9.0, and a Khmer *General knowledge* subject (34 themed rounds of 30 questions) that can be played solo or as Team A vs Team B. The original stand-alone two-team game remains at `general.html`.
+Practice quizzes for a Cambodian grade 9 student: the four MoEYS subjects in Khmer (31 chapters), English *Mathematics (Year 9)* (14 chapters) and *Mathematics (Year 2)* (8 chapters) following the Australian Curriculum v9.0, a Khmer *General knowledge* subject (34 themed rounds of 30 questions) that can be played solo or as Team A vs Team B, and *សិស្សពូកែ* — maths-competition preparation in 7 topic banks (15-question quizzes, every question with a worked solution) built from the national outstanding-student exam papers 1997–2023 and two សិស្សពូកែ problem books. The original stand-alone two-team game remains at `general.html`.
 
 | File | What it is |
 |---|---|
@@ -35,3 +35,5 @@ each question's hit rate from real attempts, edit with live preview, delete, add
 1. Copy an existing file in `data/`, e.g. `data/math-02.js`, keep `id` equal to the file name.
 2. Write 20–30 questions, a mix of `lv: 1/2/3`; give every `lv: 3` question an `ex` explanation.
 3. In `data/subjects.js` add `bank: true` to that chapter. Commit and push.
+
+**Not yet covered:** the MoEYS textbook *វិទ្យាសាស្ត្រ ថ្នាក់ទី៩* also has an earth-science part (ផែនដីវិទ្យា, 3 chapters: ទឹកសាបនិងការបំពុល · ចលនាក្នុងផែនដី · បញ្ហាបរិស្ថានពិភពលោក, book pp. 262–317). No quiz banks exist for it yet.

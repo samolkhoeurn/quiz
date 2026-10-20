@@ -55,6 +55,19 @@ export const SUBJECTS = [
     ],
   },
   {
+    // ត្រៀមប្រឡងសិស្សពូកែគណិតវិទ្យា ថ្នាក់ទី៩ — លំហាត់ពីវិញ្ញាសាប្រឡង ១៩៩៧–២០២៣ និងសៀវភៅលំហាត់សិស្សពូកែ (១៥ សំណួរក្នុងមួយតេស្ត)
+    id: "olym", name: "សិស្សពូកែ", en: "Maths competition (Grade 9)", color: "#be123c", unit: "ប្រធានបទ",
+    chapters: [
+      { id: "olym-01", n: 1, title: "រ៉ាឌីកាល់ និងកន្សោមលេខ", sub: "រ៉ាឌីកាល់ជាន់ · បំបាត់រ៉ាឌីកាល់ · ផលបូកតេឡេស្កុប · ស្វ័យគុណ", bank: true },
+      { id: "olym-02", n: 2, title: "អត្តសញ្ញាណ និងផលគុណកត្តា", sub: "អត្តសញ្ញាណ · កន្សោមស៊ីមេទ្រី · ដាក់ជាផលគុណកត្តា · កន្សោមសនិទាន", bank: true },
+      { id: "olym-03", n: 3, title: "សមីការ និងប្រព័ន្ធសមីការ", sub: "សមីការដឺក្រេខ្ពស់ · ប្រព័ន្ធ · ប៉ារ៉ាម៉ែត្រ · តម្លៃដាច់ខាត", bank: true },
+      { id: "olym-04", n: 4, title: "វិសមភាព និងអតិបរមា-អប្បបរមា", sub: "ប្រៀបធៀបចំនួន · ការេមិនអវិជ្ជមាន · មធ្យមនព្វន្ត-ធរណីមាត្រ · ព្រំដែនផលបូក", bank: true },
+      { id: "olym-05", n: 5, title: "ទ្រឹស្តីចំនួន", sub: "ចែកដាច់ · សំណល់ · ចំនួនបឋម · ការេប្រាកដ · សមីការឌីអូផង់ · តួលេខ", bank: true },
+      { id: "olym-06", n: 6, title: "ធរណីមាត្រ", sub: "ត្រីកោណ · រង្វង់ · ផ្ទៃក្រឡា · មុំ · ភាពដូចគ្នា", bank: true },
+      { id: "olym-07", n: 7, title: "ចំណោទ ការរាប់ និងតក្កវិជ្ជា", sub: "ចំណោទល្បឿន-ការងារ · ការរាប់ · ស្វ៊ីត · ប្រូបាប · ល្បែងតក្ក", bank: true },
+    ],
+  },
+  {
     id: "enmath", name: "Mathematics (Year 9)", en: "Australian Curriculum v9.0 · in English", color: "#0f766e", unit: "Chapter", lang: "en",
     chapters: [
       { id: "enmath-01", n: 1, title: "Real numbers and surds", sub: "rational vs irrational · simplifying surds · estimating roots · rounding", bank: true },

@@ -126,3 +126,17 @@ All the English/LaTeX rules above apply, with these changes for young learners:
 - Use Khmer digits for years and counts in prose only where natural; Arabic digits are acceptable (ឆ្នាំ 1953 or ១៩៥៣ — be consistent within a bank).
 - Each round covers only its theme (title in `data/subjects.js`), with variety inside the theme; no two rounds should repeat a fact.
 - 4 options, distinct and plausible (same category: four cities, four years, four people), even spread of `a`.
+
+---
+
+# Maths-competition banks (subject `olym`, សិស្សពូកែ, 7 topic banks)
+
+Sources: វិញ្ញាសាប្រឡងសិស្សពូកែ ថ្នាក់ទី៩ ១៩៩៧–២០២៣ (official past papers — may be used as they are, with the year and paper in
+brackets at the end of `q`, e.g. «(ប្រឡងសិស្សពូកែ ២០១៥ លើកទី១)»), លំហាត់គណិតវិទ្យាសិស្សពូកែ ថ្នាក់ទី៩ (Math QCM) and
+លំហាត់គណិតវិទ្យាសម្រាប់សិស្សពូកែ ភាគ១ ពីជគណិត (សំ ឌុឌ្ឍី 2012) — book problems are rewritten as parallel versions with new numbers.
+Topics: olym-01 radicals/numeric expressions · 02 identities/factorising · 03 equations/systems · 04 inequalities/extrema ·
+05 number theory · 06 geometry (text only, no figures) · 07 word problems, counting, logic.
+
+- `quizSize: 15` (a quiz draws 15 questions); 40–50 questions per bank; ~25/45/30 % levels, where lv 1 is already an
+  exam-level warm-up. **Every question has a full worked `ex`.** Distractors are typical mistakes; exactly one option is
+  correct in value. The catalogue of all 630 source problems is kept outside the repo (scratch audit folder).
