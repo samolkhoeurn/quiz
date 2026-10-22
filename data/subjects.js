@@ -87,6 +87,21 @@ export const SUBJECTS = [
     ],
   },
   {
+    id: "enmathy5", name: "Mathematics (Year 5)", en: "Australian Curriculum v9.0 · in English", color: "#0891b2", unit: "Chapter", lang: "en",
+    chapters: [
+      { id: "enmathy5-01", n: 1, title: "Place value and decimals", sub: "AC9M5N01 · numbers beyond one million · decimals to thousandths · comparing and ordering · number lines · rounding", bank: true },
+      { id: "enmathy5-02", n: 2, title: "Factors, multiples and divisibility", sub: "AC9M5N02, AC9M5N10 · factors and products of factors · multiples · divisibility tests · prime and composite · simple algorithms and patterns", bank: true },
+      { id: "enmathy5-03", n: 3, title: "Fractions: comparing, adding and subtracting", sub: "AC9M5N03, AC9M5N05 · same and related denominators · mixed numerals · equivalent fractions · number lines · adding and subtracting fractions", bank: true },
+      { id: "enmathy5-04", n: 4, title: "Percentages, decimals and fractions", sub: "AC9M5N04 · 100 % as the whole · 10 %, 25 %, 50 %, 75 % · percentage, fraction and decimal equivalents · comparing relative size", bank: true },
+      { id: "enmathy5-05", n: 5, title: "Multiplication and division", sub: "AC9M5N06, AC9M5N07, AC9M5A01, AC9M5A02 · multiplying by one- and two-digit numbers · division with remainders · inverse operations · fact families · unknown values", bank: true },
+      { id: "enmathy5-06", n: 6, title: "Estimation, money and problem solving", sub: "AC9M5N08, AC9M5N09 · rounding to estimate · checking reasonableness · shopping, budgets and change · multi-step word problems · mathematical modelling", bank: true },
+      { id: "enmathy5-07", n: 7, title: "Length, mass, capacity, perimeter and area", sub: "AC9M5M01, AC9M5M02 · choosing units · mm, cm, m, km · g, kg · mL, L · converting units · perimeter and area of rectangles and composite shapes", bank: true },
+      { id: "enmathy5-08", n: 8, title: "Time and angles", sub: "AC9M5M03, AC9M5M04 · 12- and 24-hour time · timetables and elapsed time · estimating and measuring angles · acute, right, obtuse, straight, reflex", bank: true },
+      { id: "enmathy5-09", n: 9, title: "Shapes, nets, coordinates and transformations", sub: "AC9M5SP01, AC9M5SP02, AC9M5SP03 · nets of prisms and pyramids · grid coordinates · directions · translations, reflections, rotations · symmetry", bank: true },
+      { id: "enmathy5-10", n: 10, title: "Data and chance", sub: "AC9M5ST01, AC9M5ST02, AC9M5ST03, AC9M5P01, AC9M5P02 · tables, column and line graphs · mode · statistical investigations · listing outcomes · equally likely · frequency and likelihood", bank: true },
+    ],
+  },
+  {
     id: "enmathy2", name: "Mathematics (Year 2)", en: "Australian Curriculum v9.0 · for younger learners", color: "#db2777", unit: "Chapter", lang: "en", kids: true,
     chapters: [
       { id: "enmathy2-01", n: 1, title: "Numbers to 1000 and place value", sub: "counting · reading and writing numbers · ordering · hundreds, tens and ones · number lines", bank: true },

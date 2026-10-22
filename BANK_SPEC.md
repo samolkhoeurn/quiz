@@ -111,6 +111,28 @@ All the English/LaTeX rules above apply, with these changes for young learners:
 
 ---
 
+# Year 5 banks (subject `enmathy5`, Australian Curriculum v9.0 Year 5, age 10–11)
+
+All the English/LaTeX rules of the Year 9 section apply (LaTeX in `$…$`, `\$` for money in prose, Australian spelling and
+contexts, decimal point, no Unicode maths symbols), with these settings:
+
+- **Set `quizSize: 20`** in the bank object (a quiz draws 20 questions). 40–45 questions per chapter.
+- **Every question has an `ex`** (two or three clear sentences showing the working — a Year 5 student should be able to
+  follow it alone). Hard questions too.
+- Plain, concrete English: one idea per sentence; NAPLAN Year 5 style. Numbers: whole numbers to millions, decimals to
+  thousandths, fractions with same or related denominators (halves/quarters/eighths, thirds/sixths/twelfths, fifths/tenths),
+  percentages 10 %, 25 %, 50 %, 75 %, 100 % and simple others. No negative numbers, no algebraic letters beyond a box or a
+  single unknown in a number sentence, no formal equations beyond `$\square \times 6 = 42$` style.
+- Levels: lv 1 = recall / one step; lv 2 = two steps or a word problem; lv 3 = reasoning, estimation with explanation,
+  multi-step modelling (AC9M5N09) — still Year 5 content, never Year 6+ (no ratios, no integers, no order of operations
+  with brackets beyond simple cases, no area of triangles).
+- No pictures: describe grids, shapes, nets, clocks and graphs in words or small text tables
+  (e.g. "Mon 12 °C, Tue 15 °C, Wed 18 °C, Thu 14 °C"). Coordinates as `$(3, 5)$`.
+- Each chapter must cover the content descriptions listed in its `sub` field in `data/subjects.js`; group questions by
+  sub-topic with comments; `title` must equal `data/subjects.js` exactly.
+
+---
+
 # General-knowledge banks (subject `gk`, ចំណេះដឹងទូទៅ, 34 themed rounds)
 
 - **Khmer language.** Use English (Latin script) for foreign proper nouns that have no established Khmer form or
