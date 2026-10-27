@@ -23,6 +23,26 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Wedding site (samol.me/wedding): one document per invited guest/family and one per reply.
+    //   /guests/{code} { name, size, createdAt }  — created by the admin on /wedding/admin/; the code is the personal link
+    //   /rsvps/{code}  { attending, count, names, updatedAt } — written by the guest who holds the link
+    match /guests/{code} {
+      allow get: if true;                       // the invitation page looks up the name behind a link (no listing)
+      allow list, create, update, delete: if isAdmin();
+    }
+    match /rsvps/{code} {
+      allow get: if true;                       // the guest sees their own previous answer
+      allow list, delete: if isAdmin();
+      allow create, update: if exists(/databases/$(database)/documents/guests/$(code))
+                            && request.resource.data.keys().hasOnly(['attending', 'count', 'names', 'updatedAt'])
+                            && request.resource.data.attending is bool
+                            && request.resource.data.count is int
+                            && request.resource.data.count >= 0 && request.resource.data.count <= 20
+                            && request.resource.data.names is string
+                            && request.resource.data.names.size() <= 300
+                            && request.resource.data.updatedAt is number;
+    }
+
     match /attempts/{id} {
       allow read: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
       allow create: if signedIn()
