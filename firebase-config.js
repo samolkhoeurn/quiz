@@ -15,7 +15,9 @@ export const firebaseConfig = {
 // The one e-mail address that gets the admin screen.
 // Must match exactly the e-mail of the user you create in Firebase → Authentication (SETUP.md, step 5)
 // and the ADMIN_EMAIL inside firestore.rules.
-export const ADMIN_EMAIL = "samol.khoeurn@gmail.com";
+// Admin accounts (all lower-case). Keep the same list inside isAdmin() in firestore.rules.
+export const ADMIN_EMAILS = ["samol.khoeurn@gmail.com"];
+export const ADMIN_EMAIL = ADMIN_EMAILS[0];
 
 // Students log in with a short username; internally it becomes <username>@g9quiz.local
 export const STUDENT_EMAIL_DOMAIN = "g9quiz.local";

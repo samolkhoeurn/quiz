@@ -2,9 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // >>> change this to the same e-mail as ADMIN_EMAIL in firebase-config.js <<<
+    // >>> keep this list the same as ADMIN_EMAILS in firebase-config.js (all lower-case) <<<
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'samol.khoeurn@gmail.com';
+      return request.auth != null
+        && request.auth.token.email.lower() in ['samol.khoeurn@gmail.com'];
     }
     function signedIn() { return request.auth != null; }
 

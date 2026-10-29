@@ -4,8 +4,11 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, creat
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_EMAIL, STUDENT_EMAIL_DOMAIN } from "./firebase-config.js?v=20";
-import { SUBJECTS, LEVELS } from "./data/subjects.js?v=20";
+import * as CFG from "./firebase-config.js?v=22";
+const { firebaseConfig, STUDENT_EMAIL_DOMAIN } = CFG;
+const ADMIN_EMAILS = (CFG.ADMIN_EMAILS || [CFG.ADMIN_EMAIL]).map((e) => String(e).toLowerCase());
+const ADMIN_EMAIL = ADMIN_EMAILS[0];
+import { SUBJECTS, LEVELS } from "./data/subjects.js?v=22";
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
@@ -75,7 +78,7 @@ const ALL_BANKS = SUBJECTS.flatMap((s) => s.chapters.filter((c) => c.bank).map((
 const studentEmail = (u) => `${u.trim().toLowerCase()}@${STUDENT_EMAIL_DOMAIN}`;
 const bankCache = {};
 const fileBankCache = {};
-async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=20`)).default; return fileBankCache[id]; }
+async function loadFileBank(id) { if (!fileBankCache[id]) fileBankCache[id] = (await import(`./data/${id}.js?v=22`)).default; return fileBankCache[id]; }
 // A chapter edited online lives in Firestore (banks/{id}) and overrides the file version; otherwise the file is used.
 // Exception: when the file carries a higher `rev` than the Firestore copy (a revised file was pushed), the file wins
 // until the admin updates the database from the question manager (button in the DB status line).
@@ -107,7 +110,7 @@ else onAuthStateChanged(auth, async (user) => {
   S.user = user; S.profile = null; S.attempts = null; S.quiz = null;
   S.uiLang = "km"; S.kids = false; document.body.classList.remove("kids");
   if (!user) { renderLogin(); return; }
-  S.isAdmin = (user.email || "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  S.isAdmin = ADMIN_EMAILS.includes((user.email || "").toLowerCase());
   if (S.isAdmin) { renderAdmin(); return; }
   const snap = await getDoc(doc(db, "users", user.uid));
   if (!snap.exists() || snap.data().active === false) {
@@ -449,10 +452,17 @@ async function renderResult(attempt, bank, back, who) {
         ${q.ex ? `<div class="explain"><strong>${S.quizLang === "en" ? "Explanation:" : "ការពន្យល់៖"}</strong> ${mf(q.ex)}</div>` : ""}
       </section>`;
     }).join("")}</div>
-    <div class="row between"><button class="btn ghost" id="back2">← ត្រឡប់</button>${who ? "" : `<button class="btn primary" id="again">ធ្វើម្តងទៀត</button>`}</div>
+    <div class="row between"><button class="btn ghost" id="back2">← ត្រឡប់</button>${who ? (attempt.id && S.isAdmin ? `<button class="btn ghost danger" id="delAttempt">🗑 លុបកំណត់ត្រានេះ</button>` : "") : `<button class="btn primary" id="again">ធ្វើម្តងទៀត</button>`}</div>
   </div>`;
   $("back").addEventListener("click", back); $("back2").addEventListener("click", back);
   $("again")?.addEventListener("click", () => renderQuizIntro(attempt.bankId));
+  $("delAttempt")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget;
+    if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "លុបកំណត់ត្រានេះជាស្ថាពរ? ចុចម្តងទៀតដើម្បីបញ្ជាក់"; setTimeout(() => { b.dataset.sure = ""; b.textContent = "🗑 លុបកំណត់ត្រានេះ"; }, 5000); return; }
+    b.disabled = true; b.textContent = "កំពុងលុប…";
+    try { await deleteAttempt(attempt.id, attempt.uid); back(); }
+    catch (ex) { b.disabled = false; b.textContent = "បរាជ័យ៖ " + (ex.code || ex); }
+  });
   if (S.celebrate) { S.celebrate = false; celebrate(p, attempt); }
 }
 
@@ -645,9 +655,6 @@ async function renderAdminReports(students) {
     const avgMs = as.reduce((x, a) => x + a.totalMs / a.total, 0) / as.length;
     return `<tr><td><span style="color:${s.color};font-weight:600">${esc(sName(s))}</span><br><span class="small">${unitOf(s, c)} ${esc(c.title)}</span></td><td class="num">${km(as.length)}</td><td class="num">${km(best)}</td><td class="num">${km(pointsOf(last))}</td><td><div class="bar"><i style="width:${pointsOf(last)}%"></i></div></td><td class="num">${secs(avgMs)}</td></tr>`;
   }).join("");
-  // weak spots: questions wrong in latest attempt per bank
-  const weak = [];
-  for (const id of ALL_BANKS) { const last = attempts.find((a) => a.bankId === id); if (!last) continue; const bank = await loadBank(id); last.answers.filter((a) => !a.correct).forEach((a) => weak.push({ bank, a })); }
   rep.innerHTML = `
     <div class="stats">
       <div class="stat"><div class="v">${km(attempts.length)}</div><div class="l">តេស្តបានធ្វើ</div></div>
@@ -657,16 +664,38 @@ async function renderAdminReports(students) {
     </div>
     <h2 style="margin-top:14px">សង្ខេបតាមមេរៀន/ជំពូក</h2>
     <div class="tablewrap"><table><thead><tr><th>មេរៀន/ជំពូក</th><th class="num">ដង</th><th class="num">ល្អបំផុត /១០០</th><th class="num">ចុងក្រោយ /១០០</th><th></th><th class="num">មធ្យម/សំណួរ</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <h2 style="margin-top:14px">តេស្តទាំងអស់ <span class="muted small">(ចុចដើម្បីមើលលម្អិតតាមសំណួរ និងពេលវេលា)</span></h2>
-    <div class="tablewrap"><table><thead><tr><th>កាលបរិច្ឆេទ</th><th>មេរៀន/ជំពូក</th><th class="num">ពិន្ទុ</th><th class="num">ងាយ</th><th class="num">មធ្យម</th><th class="num">ពិបាក</th><th class="num">ពេល</th></tr></thead><tbody>
+    <h2 style="margin-top:14px">តេស្តទាំងអស់ <span class="muted small">(ចុចដើម្បីមើលលម្អិតតាមសំណួរ និងពេលវេលា · 🗑 លុបកំណត់ត្រា)</span></h2>
+    <div class="tablewrap"><table><thead><tr><th>កាលបរិច្ឆេទ</th><th>មេរៀន/ជំពូក</th><th class="num">ពិន្ទុ</th><th class="num">ងាយ</th><th class="num">មធ្យម</th><th class="num">ពិបាក</th><th class="num">ពេល</th><th></th></tr></thead><tbody>
       ${attempts.map((a) => { const lv = (l) => { const x = a.answers.filter((z) => z.lv === l); return `${km(x.filter((z) => z.correct).length)}/${km(x.length)}`; };
-        return `<tr class="clickable" data-id="${a.id}"><td>${fmtDate(a.finishedAt)}</td><td>${esc(sName(subjectOf(a.subject) || {}))} · ${esc(a.title)}</td><td class="num ${pointsOf(a) >= 50 ? "ok-text" : "bad-text"}">${km(pointsOf(a))} / ១០០ <span class="muted small">(${km(a.score)}/${km(a.total)})</span></td><td class="num">${lv(1)}</td><td class="num">${lv(2)}</td><td class="num">${lv(3)}</td><td class="num">${mins(a.totalMs)}</td></tr>`; }).join("")}
+        return `<tr class="clickable" data-id="${a.id}"><td>${fmtDate(a.finishedAt)}</td><td>${esc(sName(subjectOf(a.subject) || {}))} · ${esc(a.title)}</td><td class="num ${pointsOf(a) >= 50 ? "ok-text" : "bad-text"}">${km(pointsOf(a))} / ១០០ <span class="muted small">(${km(a.score)}/${km(a.total)})</span></td><td class="num">${lv(1)}</td><td class="num">${lv(2)}</td><td class="num">${lv(3)}</td><td class="num">${mins(a.totalMs)}</td><td class="num"><button class="btn ghost sm del" data-del="${a.id}" title="លុបកំណត់ត្រានេះ">🗑</button></td></tr>`; }).join("")}
     </tbody></table></div>
-    ${weak.length ? `<h2 style="margin-top:14px">សំណួរដែលខុសក្នុងតេស្តចុងក្រោយ (${km(weak.length)})</h2>
+    <div id="weak"><p class="muted small">កំពុងរកសំណួរដែលខុស…</p></div>`;
+  rep.querySelectorAll("[data-id]").forEach((r) => r.addEventListener("click", () => renderResult(attempts.find((a) => a.id === r.dataset.id), null, () => renderAdmin("reports"), `អ្នកគ្រប់គ្រង · ${S.user.email}`)));
+  // delete one attempt: first click asks, second click (within 4 s) deletes
+  rep.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "លុប?"; b.classList.add("danger"); setTimeout(() => { b.dataset.sure = ""; b.textContent = "🗑"; b.classList.remove("danger"); }, 4000); return; }
+    b.disabled = true; b.textContent = "…";
+    try { await deleteAttempt(b.dataset.del, sel.uid); renderAdminReports(students); }
+    catch (ex) { b.disabled = false; b.textContent = "🗑"; b.title = "បរាជ័យ៖ " + (ex.code || ex); b.classList.add("danger"); }
+  }));
+  // weak spots: questions wrong in the latest attempt of each chapter (banks load in parallel, after the tables are shown)
+  const latest = [...new Set(attempts.map((a) => a.bankId))].map((id) => attempts.find((a) => a.bankId === id));
+  const banks = await Promise.all(latest.map((a) => loadBank(a.bankId).catch(() => null)));
+  if (S.admin.sel !== sel.uid || !$("weak")) return;                  // the admin moved on while banks were loading
+  const weak = [];
+  latest.forEach((last, k) => { const bank = banks[k]; if (!bank) return; last.answers.filter((a) => !a.correct && bank.questions[a.i]).forEach((a) => weak.push({ bank, a })); });
+  $("weak").innerHTML = weak.length ? `<h2 style="margin-top:14px">សំណួរដែលខុសក្នុងតេស្តចុងក្រោយ (${km(weak.length)})</h2>
     <div class="tablewrap"><table><thead><tr><th>មេរៀន/ជំពូក</th><th>សំណួរ</th><th>កម្រិត</th><th class="num">ពេល</th></tr></thead><tbody>
       ${weak.map(({ bank, a }) => `<tr><td class="small">${esc(bank.title)}</td><td>${km(a.i + 1)}. ${mf(bank.questions[a.i].q)}</td><td><span class="chip lv${a.lv}">${LEVELS[a.lv]}</span></td><td class="num">${secs(a.ms)}</td></tr>`).join("")}
-    </tbody></table></div>` : ""}`;
-  rep.querySelectorAll("[data-id]").forEach((r) => r.addEventListener("click", () => renderResult(attempts.find((a) => a.id === r.dataset.id), null, () => renderAdmin("reports"), `អ្នកគ្រប់គ្រង · ${S.user.email}`)));
+    </tbody></table></div>` : "";
+}
+
+// Admin only (firestore.rules: attempts delete → isAdmin). Removes the record from the database and from the local caches.
+async function deleteAttempt(id, uid) {
+  await deleteDoc(doc(db, "attempts", id));
+  if (S.admin.attempts[uid]) S.admin.attempts[uid] = S.admin.attempts[uid].filter((a) => a.id !== id);
+  if (S.attempts) S.attempts = S.attempts.filter((a) => a.id !== id);
 }
 
 /* ---------- question manager (admin) ---------- */

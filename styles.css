@@ -45,6 +45,7 @@ h3{font-size:1rem;font-weight:700}
 .btn.ghost{border-color:transparent;color:var(--muted);padding:8px 12px}
 .btn.danger{color:var(--bad);border-color:var(--bad)}
 .btn.sm{padding:6px 12px;font-size:.9rem;border-radius:10px}
+.btn.del{padding:4px 8px;opacity:.55} .btn.del:hover,.btn.del.danger{opacity:1;color:var(--bad);border-color:var(--bad)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .field{display:grid;gap:4px}
 .field label{font-size:.9rem;color:var(--muted);font-weight:500}
